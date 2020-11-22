@@ -390,56 +390,64 @@ fn main() {
       lib::Arg::Edit(num, new_product_num, new_destination_num_opt) => {
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         let lend_data_len = lend_data.len();
-        let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
-        let data = lib::get_lend_data(&lend_data, num).unwrap();
-        let data_str = data.to_string();
-        println!(
-          "{}\nという{}番の操作の品名を\"{}\"に{}変更します\n本当に良いですか？[Y/n]\n    >",
-          data_str,
-          num,
-          new_product_num,
-          (match new_destination_num_opt.clone() {
-            None => String::new(),
-            Some(s) => format!("、相手を\"{}\"に", s),
-          })
-        );
-        let mut s = String::new();
-        std::io::stdin().read_line(&mut s).ok();
-        let s: &str = &s.trim().to_owned().to_ascii_lowercase();
-        match s {
-          "n" => println!("操作を中止しました"),
-          _ => {
-            lend_data.push(lib::LendData {
-              time: time_fixed_offset,
-              lend_type: lib::LendType::Edit(num, new_product_num, new_destination_num_opt),
-              num: (lend_data_len as isize + 1),
-            });
-            lend_data_lst_to_output(data_file_name, lend_data);
+        if num >= lend_data_len as isize {
+          println!("!  未来の操作を編集することは出来ません\n");
+        } else {
+          let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
+          let data = lib::get_lend_data(&lend_data, num).unwrap();
+          let data_str = data.to_string();
+          println!(
+            "{}\nという{}番の操作の品名を\"{}\"に{}変更します\n本当に良いですか？[Y/n]\n    >",
+            data_str,
+            num,
+            new_product_num,
+            (match new_destination_num_opt.clone() {
+              None => String::new(),
+              Some(s) => format!("、相手を\"{}\"に", s),
+            })
+          );
+          let mut s = String::new();
+          std::io::stdin().read_line(&mut s).ok();
+          let s: &str = &s.trim().to_owned().to_ascii_lowercase();
+          match s {
+            "n" => println!("操作を中止しました"),
+            _ => {
+              lend_data.push(lib::LendData {
+                time: time_fixed_offset,
+                lend_type: lib::LendType::Edit(num, new_product_num, new_destination_num_opt),
+                num: (lend_data_len as isize + 1),
+              });
+              lend_data_lst_to_output(data_file_name, lend_data);
+            }
           }
         }
       }
       lib::Arg::Remove(num) => {
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         let lend_data_len = lend_data.len();
-        let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
-        let data = lib::get_lend_data(&lend_data, num).unwrap();
-        let data_str = data.to_string();
-        println!(
-          "{}\nという{}番の操作を無かったことにします\n本当に良いですか？[Y/n]\n    >",
-          data_str, num
-        );
-        let mut s = String::new();
-        std::io::stdin().read_line(&mut s).ok();
-        let s: &str = &s.trim().to_owned().to_ascii_lowercase();
-        match s {
-          "n" => println!("操作を中止しました"),
-          _ => {
-            lend_data.push(lib::LendData {
-              time: time_fixed_offset,
-              lend_type: lib::LendType::Remove(num),
-              num: (lend_data_len as isize + 1),
-            });
-            lend_data_lst_to_output(data_file_name, lend_data);
+        if num >= lend_data_len as isize {
+          println!("!  未来の操作を削除することは出来ません\n");
+        } else {
+          let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
+          let data = lib::get_lend_data(&lend_data, num).unwrap();
+          let data_str = data.to_string();
+          println!(
+            "{}\nという{}番の操作を無かったことにします\n本当に良いですか？[Y/n]\n    >",
+            data_str, num
+          );
+          let mut s = String::new();
+          std::io::stdin().read_line(&mut s).ok();
+          let s: &str = &s.trim().to_owned().to_ascii_lowercase();
+          match s {
+            "n" => println!("操作を中止しました"),
+            _ => {
+              lend_data.push(lib::LendData {
+                time: time_fixed_offset,
+                lend_type: lib::LendType::Remove(num),
+                num: (lend_data_len as isize + 1),
+              });
+              lend_data_lst_to_output(data_file_name, lend_data);
+            }
           }
         }
       }
