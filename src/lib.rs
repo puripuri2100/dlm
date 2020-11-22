@@ -57,7 +57,7 @@ pub struct LendData {
   pub num: isize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ShowLendData {
   pub time: chrono::DateTime<FixedOffset>,
   pub product_num: String,
@@ -170,20 +170,25 @@ pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
   let mut sort_lend_data_lst = lend_data_lst.to_owned();
   // 大きい順に並び変えることで、removeとeditを先にし、最初に処理を行う
   sort_lend_data_lst.sort_by(|a, b| b.partial_cmp(a).unwrap());
-  for i in 0..sort_lend_data_lst.len() {
+  let mut i = 0;
+  loop {
     let next = sort_lend_data_lst.get(i);
     match next {
       None => break,
       Some(lend_data) => {
+        let next_id = lend_data.clone().num;
         match lend_data.clone().lend_type {
           LendType::Remove(num) => {
             // 番号が一致するデータ以外のリストを作成し、上書きする
             let new_sort_lend_data_lst: Vec<LendData> = sort_lend_data_lst
               .iter()
-              .filter(|data| data.num != num)
+              // remove自身も削除する
+              .filter(|data| !(data.num == num || data.num == next_id))
               .cloned()
               .collect();
             sort_lend_data_lst = new_sort_lend_data_lst;
+            // 自分自身も削除するのでiは変えない
+            i = i;
           }
           LendType::Edit(num, new_product_num, new_destination_num_opt) => {
             // 番号が一致するデータを上書きする
@@ -215,20 +220,26 @@ pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
                   data.clone()
                 }
               })
+              .filter(|data| data.num != next_id)
               .collect();
             sort_lend_data_lst = new_sort_lend_data_lst;
+            // 自分自身を削除するのでiは変えない
+            i = i;
           }
+          // RemoveとEditが先に並んでいるはずなので、どちらかに到達したらその時点で終了しても大丈夫
           LendType::Lend(_, _) => break,
           LendType::Return(_, _) => break,
         }
       }
     }
   }
+  // 操作が後のものが前になるように並べていたので、反転させる
+  sort_lend_data_lst.reverse();
   sort_lend_data_lst
 }
 
 // 操作番号から操作番号の種類を取り出す
-pub fn get_lend_data(lend_data: &Vec<LendData>, n: isize) -> Option<LendData> {
+pub fn get_lend_data(lend_data: &[LendData], n: isize) -> Option<LendData> {
   lend_data.iter().find(|data| data.num == n).cloned()
 }
 

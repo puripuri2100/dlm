@@ -91,7 +91,7 @@ pub fn print_history(command_history: &[String], range: usize) {
   }
 }
 
-pub fn print_lend_success(product_num: &String, destination_num_opt: &Option<String>) {
+pub fn print_lend_success(product_num: &str, destination_num_opt: &Option<String>) {
   match destination_num_opt {
     None => println!("{}を貸し出しました\n", product_num),
     Some(destination_num) => {
@@ -100,7 +100,7 @@ pub fn print_lend_success(product_num: &String, destination_num_opt: &Option<Str
   }
 }
 
-pub fn print_return_success(product_num: &String, destination_num_opt: &Option<String>) {
+pub fn print_return_success(product_num: &str, destination_num_opt: &Option<String>) {
   match destination_num_opt {
     None => println!("{}が返却されました\n", product_num),
     Some(destination_num) => {

@@ -299,9 +299,9 @@ fn main() {
         println!("検査を開始します\n--- --- ---\n");
         let lend_data_lst =
           lib::organize_lend_data(&csv_file_name_to_lend_data(data_file_name.to_owned()));
+        let mut lend_stack: Vec<&lib::LendData> = Vec::new();
         for lend_data in lend_data_lst.iter() {
           let lend_type = &lend_data.lend_type;
-          let mut lend_stack: Vec<&lib::LendData> = Vec::new();
           match lend_type {
             lib::LendType::Lend(product_num, _) => {
               match lend_stack
@@ -329,7 +329,7 @@ fn main() {
                 .filter(|data| !(check_lend_product_num(data, product_num)))
                 .cloned()
                 .collect();
-              lend_stack = new_lend_stack;
+              lend_stack = new_lend_stack
             }
             // これ以外は無いはずなので考慮しない
             _ => {}
