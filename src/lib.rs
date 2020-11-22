@@ -80,9 +80,39 @@ impl PartialOrd for LendData {
   }
 }
 
+impl ToString for LendData {
+  fn to_string(&self) -> String {
+    let time = self.time;
+    let time_str = time.format("%Y/%m/%d %H:%M").to_string();
+    let num = self.num;
+    let lend_type = self.clone().lend_type;
+    let lend_type_str = match lend_type {
+      LendType::Lend(product_num, destination_num_opt) => match destination_num_opt {
+        None => format!("{}を貸出", product_num),
+        Some(destination_num) => format!("{}を{}へ貸出", product_num, destination_num),
+      },
+      LendType::Return(product_num, destination_num_opt) => match destination_num_opt {
+        None => format!("{}を返却", product_num),
+        Some(destination_num) => format!("{}を{}が返却", product_num, destination_num),
+      },
+      LendType::Edit(num, new_product_num, new_destination_num_opt) => {
+        match new_destination_num_opt {
+          None => format!("{}番目の操作の品名を\"{}\"に修正する", num, new_product_num),
+          Some(new_destination_num) => format!(
+            "{}番目の操作の品名を\"{}\"に、相手を\"{}\"に修正する",
+            num, new_product_num, new_destination_num
+          ),
+        }
+      }
+      LendType::Remove(num) => format!("{}番目の操作を無かったことにする", num),
+    };
+    let num_str = format!("({})", num);
+    format!("{}  {}  \"{}\"", num_str, time_str, lend_type_str)
+  }
+}
 
 #[test]
-fn check_sort_lend_data () {
+fn check_sort_lend_data() {
   use chrono::Utc;
   // removeが一番前に来るかの検査
   // 操作番号が後ろのやつが前に来てほしい
@@ -90,51 +120,50 @@ fn check_sort_lend_data () {
   let mut lst = vec![
     LendData {
       time: time,
-      lend_type : LendType::Lend(String::new(),None),
-      num : 1,
+      lend_type: LendType::Lend(String::new(), None),
+      num: 1,
     },
     LendData {
       time: time,
-      lend_type : LendType::Edit(1,String::new(),None),
-      num : 2,
+      lend_type: LendType::Edit(1, String::new(), None),
+      num: 2,
     },
     LendData {
       time: time,
-      lend_type : LendType::Remove(1),
-      num : 3,
+      lend_type: LendType::Remove(1),
+      num: 3,
     },
     LendData {
       time: time,
-      lend_type : LendType::Lend(String::new(),None),
-      num : 4,
+      lend_type: LendType::Lend(String::new(), None),
+      num: 4,
     },
   ];
   lst.sort_by(|a, b| b.partial_cmp(a).unwrap());
   let lst2 = vec![
     LendData {
       time: time,
-      lend_type : LendType::Remove(1),
-      num : 3,
+      lend_type: LendType::Remove(1),
+      num: 3,
     },
     LendData {
       time: time,
-      lend_type : LendType::Edit(1,String::new(),None),
-      num : 2,
+      lend_type: LendType::Edit(1, String::new(), None),
+      num: 2,
     },
     LendData {
       time: time,
-      lend_type : LendType::Lend(String::new(),None),
-      num : 4,
+      lend_type: LendType::Lend(String::new(), None),
+      num: 4,
     },
     LendData {
       time: time,
-      lend_type : LendType::Lend(String::new(),None),
-      num : 1,
+      lend_type: LendType::Lend(String::new(), None),
+      num: 1,
     },
-    ];
+  ];
   assert_eq!(lst, lst2);
 }
-
 
 // データからremoveやeditを反映させ、綺麗なデータを作る
 pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
@@ -198,10 +227,10 @@ pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
   sort_lend_data_lst
 }
 
-
-
-
-
+// 操作番号から操作番号の種類を取り出す
+pub fn get_lend_data(lend_data: &Vec<LendData>, n: isize) -> Option<LendData> {
+  lend_data.iter().find(|data| data.num == n).cloned()
+}
 
 fn show_lend_data_to_string(show_lend_data: &ShowLendData, config_data: &ConfigData) -> String {
   let time = show_lend_data.time;
@@ -279,6 +308,7 @@ pub enum Arg {
   MissingArgument,
   History(usize),
   Show,
+  AllPrint,
   Check,
   Lend(String, Option<String>),
   Return(String, Option<String>),
@@ -290,7 +320,7 @@ pub fn parse_arg(arg: Vec<&str>) -> Arg {
   if arg.is_empty() {
     Arg::Null
   } else {
-    let arg_command_name: &str = &arg[0].to_owned().to_lowercase();
+    let arg_command_name: &str = &arg[0].to_owned().to_ascii_lowercase();
     match arg_command_name {
       "exit" => Arg::Exit,
       "help" => Arg::Help,
@@ -302,33 +332,58 @@ pub fn parse_arg(arg: Vec<&str>) -> Arg {
         }
       },
       "show" => Arg::Show,
+      "all" => Arg::AllPrint,
       "check" => Arg::Check,
       "lend" => match arg.get(1) {
         None => Arg::MissingArgument,
         Some(s1) => match arg.get(2) {
           None => Arg::Lend(s1.to_string(), None),
-          Some(s2) => Arg::Lend(s1.to_string(), Some(s2.to_string())),
+          Some(s2) => {
+            if s2.is_empty() {
+              Arg::Lend(s1.to_string(), None)
+            } else {
+              Arg::Lend(s1.to_string(), Some(s2.to_string()))
+            }
+          }
         },
       },
       "l" => match arg.get(1) {
         None => Arg::MissingArgument,
         Some(s1) => match arg.get(2) {
           None => Arg::Lend(s1.to_string(), None),
-          Some(s2) => Arg::Lend(s1.to_string(), Some(s2.to_string())),
+          Some(s2) => {
+            if s2.is_empty() {
+              Arg::Lend(s1.to_string(), None)
+            } else {
+              Arg::Lend(s1.to_string(), Some(s2.to_string()))
+            }
+          }
         },
       },
       "return" => match arg.get(1) {
         None => Arg::MissingArgument,
         Some(s1) => match arg.get(2) {
           None => Arg::Return(s1.to_string(), None),
-          Some(s2) => Arg::Return(s1.to_owned().to_owned(), Some(s2.to_string())),
+          Some(s2) => {
+            if s2.is_empty() {
+              Arg::Return(s1.to_string(), None)
+            } else {
+              Arg::Return(s1.to_string(), Some(s2.to_string()))
+            }
+          }
         },
       },
       "r" => match arg.get(1) {
         None => Arg::MissingArgument,
         Some(s1) => match arg.get(2) {
           None => Arg::Return(s1.to_string(), None),
-          Some(s2) => Arg::Return(s1.to_owned().to_owned(), Some(s2.to_string())),
+          Some(s2) => {
+            if s2.is_empty() {
+              Arg::Return(s1.to_string(), None)
+            } else {
+              Arg::Return(s1.to_string(), Some(s2.to_string()))
+            }
+          }
         },
       },
       "edit" => match arg.get(1) {
@@ -337,7 +392,16 @@ pub fn parse_arg(arg: Vec<&str>) -> Arg {
           Err(_) => Arg::MissingArgument,
           Ok(i) => match arg.get(2) {
             None => Arg::MissingArgument,
-            Some(s2) => Arg::Edit(i, s2.to_string(), arg.get(3).map(|s| s.to_string())),
+            Some(s2) => match arg.get(3) {
+              None => Arg::Edit(i, s2.to_string(), None),
+              Some(s3) => {
+                if s2.is_empty() {
+                  Arg::Edit(i, s2.to_string(), None)
+                } else {
+                  Arg::Edit(i, s2.to_string(), Some(s3.to_string()))
+                }
+              }
+            },
           },
         },
       },
@@ -348,7 +412,7 @@ pub fn parse_arg(arg: Vec<&str>) -> Arg {
           Ok(i) => Arg::Remove(i),
         },
       },
-      "#" => {Arg::Null}
+      "#" => Arg::Null,
       name => Arg::NotFoundCommandName(name.to_owned()),
     }
   }

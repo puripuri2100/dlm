@@ -9,7 +9,7 @@ pub fn print_start() {
 }
 
 pub fn print_restart() {
-  println!("操作を行ってください\n操作方法がわからない場合は help と入力してください\n>")
+  println!("\n操作を行ってください\n操作方法がわからない場合は help と入力してください\n>")
 }
 
 pub fn print_help() {
@@ -43,6 +43,8 @@ pub fn print_help() {
 
   show      : 現在貸し出されているものと貸出先を表示します
               品名と貸出先の番号は実行時に与えたJSONファイルに基づいて変換されます
+
+  all       : 全ての操作を表示します
 
   check     : 貸出と返却が食い違っているものが無いかをチェックします
 
@@ -85,6 +87,24 @@ pub fn print_history(command_history: &[String], range: usize) {
       .skip(vec_len - range)
     {
       println!("{}: {}", i, item)
+    }
+  }
+}
+
+pub fn print_lend_success(product_num: &String, destination_num_opt: &Option<String>) {
+  match destination_num_opt {
+    None => println!("{}を貸し出しました\n", product_num),
+    Some(destination_num) => {
+      println!("{}を{}に貸し出しました", product_num, destination_num);
+    }
+  }
+}
+
+pub fn print_return_success(product_num: &String, destination_num_opt: &Option<String>) {
+  match destination_num_opt {
+    None => println!("{}が返却されました\n", product_num),
+    Some(destination_num) => {
+      println!("{}が{}から返却されました", product_num, destination_num);
     }
   }
 }
