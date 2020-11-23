@@ -170,9 +170,10 @@ pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
   let mut sort_lend_data_lst = lend_data_lst.to_owned();
   // 大きい順に並び変えることで、removeとeditを先にし、最初に処理を行う
   sort_lend_data_lst.sort_by(|a, b| b.partial_cmp(a).unwrap());
-  let mut i = 0;
   loop {
-    let next = sort_lend_data_lst.get(i);
+    // 先頭がRemoveでもEditでも、自分自身を削除して
+    // sort_lend_data_lstを更新するので、常に先頭を取り続けて良い
+    let next = sort_lend_data_lst.get(0);
     match next {
       None => break,
       Some(lend_data) => {
@@ -187,8 +188,6 @@ pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
               .cloned()
               .collect();
             sort_lend_data_lst = new_sort_lend_data_lst;
-            // 自分自身も削除するのでiは変えない
-            i = i;
           }
           LendType::Edit(num, new_product_num, new_destination_num_opt) => {
             // 番号が一致するデータを上書きする
@@ -220,11 +219,10 @@ pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
                   data.clone()
                 }
               })
+              // 自分自身を削除する
               .filter(|data| data.num != next_id)
               .collect();
             sort_lend_data_lst = new_sort_lend_data_lst;
-            // 自分自身を削除するのでiは変えない
-            i = i;
           }
           // RemoveとEditが先に並んでいるはずなので、どちらかに到達したらその時点で終了しても大丈夫
           LendType::Lend(_, _) => break,
@@ -233,7 +231,7 @@ pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
       }
     }
   }
-  // 操作が後のものが前になるように並べていたので、反転させる
+  // 操作番号が大きい（後に行った）ものが前になるように並べていたので、反転して通常に戻す
   sort_lend_data_lst.reverse();
   sort_lend_data_lst
 }
@@ -243,6 +241,11 @@ pub fn get_lend_data(lend_data: &[LendData], n: isize) -> Option<LendData> {
   lend_data.iter().find(|data| data.num == n).cloned()
 }
 
+
+// 'show'コマンドで表示する内容を作成する
+// 操作番号   時刻               貸出品                       貸出先
+//    (1) :   2020/11/23 17:40   0001（内リール1）            1（電気係）
+// という内容
 fn show_lend_data_to_string(show_lend_data: &ShowLendData, config_data: &ConfigData) -> String {
   let time = show_lend_data.time;
   let time_str = time.format("%Y/%m/%d %H:%M").to_string();
@@ -275,10 +278,11 @@ fn show_lend_data_to_string(show_lend_data: &ShowLendData, config_data: &ConfigD
   )
 }
 
+
 // 貸出中の品を表示するための文字列を作る
 pub fn make_lend_data_str(lend_data_lst: Vec<LendData>, config_data: ConfigData) -> String {
   let mut lend_data_lst = organize_lend_data(&lend_data_lst);
-  // 小さい方が最初になるように並び替える
+  // 操作番号が小さい方が最初になるように並び替える
   lend_data_lst.sort_by(|a, b| a.num.cmp(&b.num));
   // 貸したものを登録し、返却があったら削除する
   // (時間, 品名番号, Option<貸出先番号>, 操作番号)
@@ -310,6 +314,8 @@ pub fn make_lend_data_str(lend_data_lst: Vec<LendData>, config_data: ConfigData)
     .collect()
 }
 
+
+// 引数をデータ構造に落とす
 #[derive(Debug, Clone)]
 pub enum Arg {
   Null,
@@ -327,6 +333,8 @@ pub enum Arg {
   Remove(isize),
 }
 
+
+// 大文字小文字を考慮するのが面倒なので、アルファベットに関しては小文字化して評価する
 pub fn parse_arg(arg: Vec<&str>) -> Arg {
   if arg.is_empty() {
     Arg::Null
@@ -423,6 +431,7 @@ pub fn parse_arg(arg: Vec<&str>) -> Arg {
           Ok(i) => Arg::Remove(i),
         },
       },
+      // コメント扱い
       "#" => Arg::Null,
       name => Arg::NotFoundCommandName(name.to_owned()),
     }
