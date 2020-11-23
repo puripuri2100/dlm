@@ -339,7 +339,11 @@ fn main() {
       }
       lib::Arg::Lend(product_num, destination_num_opt) => {
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
-        let lend_data_len = lend_data.len();
+        let lend_data_num_max = lend_data
+          .iter()
+          .max_by_key(|x| x.num)
+          .map(|data_opt| data_opt.num)
+          .unwrap_or(0);
         let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
         // 検査を行う
         // 検査を通過したらリストに登録してファイル更新
@@ -351,7 +355,7 @@ fn main() {
             lend_data.push(lib::LendData {
               time: time_fixed_offset,
               lend_type: lib::LendType::Lend(product_num.clone(), destination_num_opt.clone()),
-              num: (lend_data_len as isize + 1),
+              num: (lend_data_num_max + 1),
             });
             lend_data_lst_to_output(data_file_name, lend_data);
             print_message::print_lend_success(&product_num, &destination_num_opt);
@@ -364,7 +368,11 @@ fn main() {
       }
       lib::Arg::Return(product_num, destination_num_opt) => {
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
-        let lend_data_len = lend_data.len();
+        let lend_data_num_max = lend_data
+          .iter()
+          .max_by_key(|x| x.num)
+          .map(|data_opt| data_opt.num)
+          .unwrap_or(0);
         let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
         // 検査を行う
         // 検査を通過したらリストに登録してファイル更新
@@ -380,7 +388,7 @@ fn main() {
             lend_data.push(lib::LendData {
               time: time_fixed_offset,
               lend_type: lib::LendType::Return(product_num.clone(), destination_num_opt.clone()),
-              num: (lend_data_len as isize + 1),
+              num: (lend_data_num_max + 1),
             });
             lend_data_lst_to_output(data_file_name, lend_data);
             print_message::print_return_success(&product_num, &destination_num_opt);
@@ -389,8 +397,12 @@ fn main() {
       }
       lib::Arg::Edit(num, new_product_num, new_destination_num_opt) => {
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
-        let lend_data_len = lend_data.len();
-        if num >= lend_data_len as isize {
+        let lend_data_num_max = lend_data
+          .iter()
+          .max_by_key(|x| x.num)
+          .map(|data_opt| data_opt.num)
+          .unwrap_or(0);
+        if num >= lend_data_num_max {
           println!("!  未来の操作を編集することは出来ません\n");
         } else {
           let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
@@ -415,7 +427,7 @@ fn main() {
               lend_data.push(lib::LendData {
                 time: time_fixed_offset,
                 lend_type: lib::LendType::Edit(num, new_product_num, new_destination_num_opt),
-                num: (lend_data_len as isize + 1),
+                num: (lend_data_num_max + 1),
               });
               lend_data_lst_to_output(data_file_name, lend_data);
             }
@@ -424,8 +436,12 @@ fn main() {
       }
       lib::Arg::Remove(num) => {
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
-        let lend_data_len = lend_data.len();
-        if num >= lend_data_len as isize {
+        let lend_data_num_max = lend_data
+          .iter()
+          .max_by_key(|x| x.num)
+          .map(|data_opt| data_opt.num)
+          .unwrap_or(0);
+        if num >= lend_data_num_max {
           println!("!  未来の操作を削除することは出来ません\n");
         } else {
           let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
@@ -444,7 +460,7 @@ fn main() {
               lend_data.push(lib::LendData {
                 time: time_fixed_offset,
                 lend_type: lib::LendType::Remove(num),
-                num: (lend_data_len as isize + 1),
+                num: (lend_data_num_max as isize + 1),
               });
               lend_data_lst_to_output(data_file_name, lend_data);
             }
