@@ -8,6 +8,19 @@ Rustによって実装されています。
 # インストール方法
 
 
+## リリースから実行ファイルを手に入れ、パスの通っている場所に配置する場合
+
+現時点での最新番は0.1.0です。
+[GitHub上でリリースされている](https://github.com/puripuri2100/dlm/releases/tag/0.1.0)ので、ここからzipファイルをダウンロードして展開し、中にある実行ファイルを適切な場所に配置してください。
+
+作成した実行ファイルは「64bit版Windows10用」と「Ubuntu20.04LTS用」です。「Ubuntu20.04LTS用」はWSL2上にインストールしたUbuntu20.04LTSで作成しました。
+
+zipファイルへのリンクは以下の通りです。クリックすると自動的にダウンロードが始まります。
+
+- [64bit版Windows10用](https://github.com/puripuri2100/dlm/releases/download/0.1.0/windows10-64bit-2020-11-23.zip)
+- [Ubuntu20.04LTS用](https://github.com/puripuri2100/dlm/releases/download/0.1.0/wsl2+ubuntu20.04LTS-2020-11-23.zip)
+
+
 ## Rust, Cargoの環境構築が済んでいる場合
 
 ```
