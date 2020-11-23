@@ -59,7 +59,7 @@ cargo install --git "https://github.com/puripuri2100/dlm.git"
 一応helpメッセージを貼り付けておきます。
 
 
-````
+```
 このソフトウェア上で使うことのできるコマンドとその役割は以下の通りです。
 
   help      : 入力できる内容と役割（これです）を表示します
