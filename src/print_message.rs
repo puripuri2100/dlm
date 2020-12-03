@@ -95,7 +95,7 @@ pub fn print_history(command_history: &[String], range: usize) {
 pub fn print_lend_success(
   product_num: &str,
   destination_num_opt: &Option<String>,
-  lend_num: isize,
+  lend_num: &isize,
 ) {
   match destination_num_opt {
     None => println!("({}): {}を貸し出しました\n", lend_num, product_num),
@@ -111,7 +111,7 @@ pub fn print_lend_success(
 pub fn print_return_success(
   product_num: &str,
   destination_num_opt: &Option<String>,
-  lend_num: isize,
+  lend_num: &isize,
 ) {
   match destination_num_opt {
     None => println!("({}): {}が返却されました\n", lend_num, product_num),
@@ -122,4 +122,28 @@ pub fn print_return_success(
       );
     }
   }
+}
+
+pub fn print_edit_success(
+  num: &isize,
+  new_product_num: &str,
+  new_destination_num_opt: &Option<String>,
+  lend_num: &isize,
+) {
+  match new_destination_num_opt {
+    None => println!(
+      "({}): 操作番号{}の品名を「{}」に書き換えました\n",
+      lend_num, num, new_product_num
+    ),
+    Some(new_destination_num) => {
+      println!(
+        "({}): 操作番号{}の品名を「{}」に、貸出先を「{}」に書き換えました",
+        lend_num, num, new_product_num, new_destination_num
+      );
+    }
+  }
+}
+
+pub fn print_remove_success(num: &isize, lend_num: &isize) {
+  println!("({}): 操作番号{}を削除しました", lend_num, num);
 }

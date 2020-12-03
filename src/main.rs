@@ -399,7 +399,7 @@ fn main() {
               num: lend_num,
             });
             lend_data_lst_to_output(data_file_name, lend_data);
-            print_message::print_lend_success(&product_num, &destination_num_opt, lend_num);
+            print_message::print_lend_success(&product_num, &destination_num_opt, &lend_num);
           }
           Some(_) => println!(
             "!  {}が既に貸し出されているのでこの操作を行うことはできません\n",
@@ -434,7 +434,7 @@ fn main() {
               num: lend_num,
             });
             lend_data_lst_to_output(data_file_name, lend_data);
-            print_message::print_return_success(&product_num, &destination_num_opt, lend_num);
+            print_message::print_return_success(&product_num, &destination_num_opt, &lend_num);
           }
         }
       }
@@ -448,7 +448,8 @@ fn main() {
           .max_by_key(|x| x.num)
           .map(|data_opt| data_opt.num)
           .unwrap_or(0);
-        if num >= lend_data_num_max {
+        let lend_num = lend_data_num_max + 1;
+        if num > lend_data_num_max {
           println!("!  未来の操作を編集することは出来ません\n");
         } else {
           let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
@@ -472,10 +473,20 @@ fn main() {
             _ => {
               lend_data.push(lib::LendData {
                 time: time_fixed_offset,
-                lend_type: lib::LendType::Edit(num, new_product_num, new_destination_num_opt),
-                num: (lend_data_num_max + 1),
+                lend_type: lib::LendType::Edit(
+                  num,
+                  new_product_num.clone(),
+                  new_destination_num_opt.clone(),
+                ),
+                num: lend_num,
               });
               lend_data_lst_to_output(data_file_name, lend_data);
+              print_message::print_edit_success(
+                &num,
+                &new_product_num,
+                &new_destination_num_opt,
+                &lend_num,
+              );
             }
           }
         }
@@ -488,7 +499,8 @@ fn main() {
           .max_by_key(|x| x.num)
           .map(|data_opt| data_opt.num)
           .unwrap_or(0);
-        if num >= lend_data_num_max {
+        let lend_num = lend_data_num_max + 1;
+        if num > lend_data_num_max {
           println!("!  未来の操作を削除することは出来ません\n");
         } else {
           let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
@@ -507,9 +519,10 @@ fn main() {
               lend_data.push(lib::LendData {
                 time: time_fixed_offset,
                 lend_type: lib::LendType::Remove(num),
-                num: (lend_data_num_max as isize + 1),
+                num: lend_num,
               });
               lend_data_lst_to_output(data_file_name, lend_data);
+              print_message::print_remove_success(&num, &lend_num)
             }
           }
         }
