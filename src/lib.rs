@@ -1,29 +1,6 @@
 use chrono::FixedOffset;
 use std::cmp::Ordering;
 
-#[derive(Debug, Clone)]
-pub struct Sizai {
-  // 管理番号と名前の対応表用のデータ
-  // 対応がない場合は管理番号の方を登録する
-  pub num: String,
-  pub name: String,
-}
-
-pub fn make_sizai(num: String, name: String) -> Sizai {
-  Sizai { num, name }
-}
-
-#[derive(Debug, Clone)]
-pub struct Sandan {
-  // 管理番号と名前の対応表用のデータ
-  // 対応がない場合は管理番号の方を登録する
-  pub num: String,
-  pub name: String,
-}
-
-pub fn make_sandan(num: String, name: String) -> Sandan {
-  Sandan { num, name }
-}
 
 #[derive(Debug, Clone)]
 pub struct ConfigData {

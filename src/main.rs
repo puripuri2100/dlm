@@ -17,33 +17,6 @@ fn path_to_json_data(path: &str) -> Value {
 }
 
 
-// 取り出したJSONデータから貸出品の対応名のデータを取りだす
-fn json_to_sizai_vec(
-  j_map: &serde_json::Map<std::string::String, serde_json::Value>,
-) -> Vec<lib::Sizai> {
-  // sizaiタグに結び付けられているJSONデータのkeyを取得する
-  let keys = j_map.keys();
-  let mut s_vec = vec![];
-  for key in keys {
-    let v = j_map.get(key).unwrap().as_str().unwrap().to_owned();
-    s_vec.push(lib::make_sizai(key.to_owned(), v))
-  }
-  s_vec
-}
-
-
-// to_sizai_vecと同じ
-fn json_to_sandan_vec(
-  j_map: &serde_json::Map<std::string::String, serde_json::Value>,
-) -> Vec<lib::Sandan> {
-  let keys = j_map.keys();
-  let mut s_vec = vec![];
-  for key in keys {
-    let v = j_map.get(key).unwrap().as_str().unwrap().to_owned();
-    s_vec.push(lib::make_sandan(key.to_owned(), v))
-  }
-  s_vec
-}
 
 
 // 一行のCSVデータから一つの貸出返却関係のデータを作る
@@ -296,7 +269,7 @@ fn main() {
   // 品名の対応リストと団体の対応リストをそれぞれ作成してまとめる
   let config_file_name_opt = matches.value_of("config_file_name");
   let config_data: lib::ConfigData = match config_file_name_opt {
-    None => lib::make_config_data(json!(null), json!(null)),
+    None => lib::make_config_data(&json!(null), &json!(null)),
     Some(config_file_name) => {
       let json_data = path_to_json_data(config_file_name);
       let sizai_json_data = &json_data["sizai"];
