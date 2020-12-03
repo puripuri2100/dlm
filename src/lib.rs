@@ -27,12 +27,12 @@ pub fn make_sandan(num: String, name: String) -> Sandan {
 
 #[derive(Debug, Clone)]
 pub struct ConfigData {
-  pub sizai: Vec<Sizai>,
-  pub sandan: Vec<Sandan>,
+  pub sizai: serde_json::Value,
+  pub sandan: serde_json::Value,
 }
 
-pub fn make_config_data(sizai: Vec<Sizai>, sandan: Vec<Sandan>) -> ConfigData {
-  ConfigData { sizai, sandan }
+pub fn make_config_data(sizai: &serde_json::Value, sandan: &serde_json::Value) -> ConfigData {
+  ConfigData { sizai: sizai.clone(), sandan : sandan.clone() }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -251,19 +251,18 @@ fn show_lend_data_to_string(show_lend_data: &ShowLendData, config_data: &ConfigD
   let time_str = time.format("%Y/%m/%d %H:%M").to_string();
   let product_num = &show_lend_data.product_num;
   let product_name = match config_data
-    .sizai
-    .iter()
-    .find(|sizai| &sizai.num == product_num)
+    .sizai[product_num]
+    .as_str()
   {
     None => String::new(),
-    Some(s) => format!("（{}）", s.name),
+    Some(s) => format!("（{}）", s),
   };
   let destination_num_opt = &show_lend_data.destination_num_opt;
   let destination_str = match destination_num_opt {
     None => String::new(),
-    Some(num) => match config_data.sandan.iter().find(|sandan| &sandan.num == num) {
+    Some(num) => match config_data.sandan[num].as_str() {
       None => num.to_string(),
-      Some(s) => format!("{}（{}）", num, s.name),
+      Some(s) => format!("{}（{}）", num, s),
     },
   };
   let num = show_lend_data.num;

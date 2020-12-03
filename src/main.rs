@@ -296,14 +296,12 @@ fn main() {
   // 品名の対応リストと団体の対応リストをそれぞれ作成してまとめる
   let config_file_name_opt = matches.value_of("config_file_name");
   let config_data: lib::ConfigData = match config_file_name_opt {
-    None => lib::make_config_data(Vec::new(), Vec::new()),
+    None => lib::make_config_data(json!(null), json!(null)),
     Some(config_file_name) => {
       let json_data = path_to_json_data(config_file_name);
-      let sizai_json_data = json_data["sizai"].as_object().unwrap();
-      let sizai_data_vec = json_to_sizai_vec(sizai_json_data);
-      let sandan_json_data = json_data["sandan"].as_object().unwrap();
-      let sandan_data_vec = json_to_sandan_vec(sandan_json_data);
-      lib::make_config_data(sizai_data_vec, sandan_data_vec)
+      let sizai_json_data = &json_data["sizai"];
+      let sandan_json_data = &json_data["sandan"];
+      lib::make_config_data(sizai_json_data, sandan_json_data)
     }
   };
 
