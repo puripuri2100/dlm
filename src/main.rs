@@ -225,7 +225,7 @@ fn check_lend_product_num(data: &lib::LendData, product_num: &str) -> bool {
 fn main() {
   // 引数の処理
   let matches = App::new("dlm")
-    .version("0.1.0")
+    .version("0.1.1")
     .author("(C) 2020 149th文化祭準備員会（2021年1月開催）電気係SC")
     .about("電気係の使用する貸出管理ソフトウェア")
     .arg(

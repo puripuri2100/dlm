@@ -10,15 +10,15 @@ Rustによって実装されています。
 
 ## リリースから実行ファイルを手に入れ、パスの通っている場所に配置する場合
 
-現時点での最新番は0.1.0です。
-[GitHub上でリリースされている](https://github.com/puripuri2100/dlm/releases/tag/0.1.0)ので、ここからzipファイルをダウンロードして展開し、中にある実行ファイルを適切な場所に配置してください。
+現時点での最新番は0.1.1です。
+[GitHub上でリリースされている](https://github.com/puripuri2100/dlm/releases/tag/0.1.1)ので、ここからzipファイルをダウンロードして展開し、中にある実行ファイルを適切な場所に配置してください。
 
 作成した実行ファイルは「64bit版Windows10用」と「Ubuntu20.04LTS用」です。「Ubuntu20.04LTS用」はWSL2上にインストールしたUbuntu20.04LTSで作成しました。
 
 zipファイルへのリンクは以下の通りです。クリックすると自動的にダウンロードが始まります。
 
-- [64bit版Windows10用](https://github.com/puripuri2100/dlm/releases/download/0.1.0/windows10-64bit-2020-11-23.zip)
-- [Ubuntu20.04LTS用](https://github.com/puripuri2100/dlm/releases/download/0.1.0/wsl2+ubuntu20.04LTS-2020-11-23.zip)
+- [64bit版Windows10用](https://github.com/puripuri2100/dlm/releases/download/0.1.1/windows10-64bit-2020-12-03.zip)
+- [Ubuntu20.04LTS用](https://github.com/puripuri2100/dlm/releases/download/0.1.1/wsl2+ubuntu20.04LTS-2020-12-03.zip)
 
 
 ## Rust, Cargoの環境構築が済んでいる場合
@@ -109,6 +109,22 @@ cargo install --git "https://github.com/puripuri2100/dlm.git"
   history   : 'history' 単体では直近10件の入力を表示します
               'history <n>' と、数字を与えるとその分だけ直近の入力を表示します
 ```
+
+
+# 変更履歴
+
+- v0.1.0
+  - 2020/11/23
+  - 最初のリリース
+- v0.1.1
+  - 2020/12/03
+  - 1つ前の操作の「編集」と「削除」に「未来の操作を弄ることはできない」というエラーが出ていたバグを修正
+  - 参団番号に対応させて、その団体の活動場所を登録する機能を追加
+    - 設定用のJSONファイルにある`"room"`タグを読み取るようにした
+    - `show`コマンドの実行の際に、部屋番号も出力するようにした
+  - 設定データをVecに直さずに、そのまま`serde_json::Value`のまま扱うようにした
+  - `Arg`というenumが名前衝突していたので、`DlmArg`に変更した
+
 
 ---
 
