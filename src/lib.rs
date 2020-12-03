@@ -1,15 +1,26 @@
 use chrono::FixedOffset;
 use std::cmp::Ordering;
 
-
 #[derive(Debug, Clone)]
 pub struct ConfigData {
+  // 貸し出した機材の番号と名前の対応データ
   pub sizai: serde_json::Value,
+  // 貸出先の参団の番号と名前の対応データ
   pub sandan: serde_json::Value,
+  // 貸出先の参団の番号と場所の対応データ
+  pub room: serde_json::Value,
 }
 
-pub fn make_config_data(sizai: &serde_json::Value, sandan: &serde_json::Value) -> ConfigData {
-  ConfigData { sizai: sizai.clone(), sandan : sandan.clone() }
+pub fn make_config_data(
+  sizai: serde_json::Value,
+  sandan: serde_json::Value,
+  room: serde_json::Value,
+) -> ConfigData {
+  ConfigData {
+    sizai,
+    sandan,
+    room,
+  }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -218,28 +229,29 @@ pub fn get_lend_data(lend_data: &[LendData], n: isize) -> Option<LendData> {
   lend_data.iter().find(|data| data.num == n).cloned()
 }
 
-
 // 'show'コマンドで表示する内容を作成する
-// 操作番号   時刻               貸出品                       貸出先
-//    (1) :   2020/11/23 17:40   0001（内リール1）            1（電気係）
+// 操作番号   時刻               貸出品                       貸出先（団体名）（場所）
+//    (1) :   2020/11/23 17:40   0001（内リール1）            0（電気係）（第二会議室）
 // という内容
 fn show_lend_data_to_string(show_lend_data: &ShowLendData, config_data: &ConfigData) -> String {
   let time = show_lend_data.time;
   let time_str = time.format("%Y/%m/%d %H:%M").to_string();
   let product_num = &show_lend_data.product_num;
-  let product_name = match config_data
-    .sizai[product_num]
-    .as_str()
-  {
+  let product_name = match config_data.sizai[product_num].as_str() {
     None => String::new(),
     Some(s) => format!("（{}）", s),
   };
   let destination_num_opt = &show_lend_data.destination_num_opt;
   let destination_str = match destination_num_opt {
     None => String::new(),
-    Some(num) => match config_data.sandan[num].as_str() {
-      None => num.to_string(),
-      Some(s) => format!("{}（{}）", num, s),
+    Some(num) => match (
+      config_data.sandan[num].as_str(),
+      config_data.room[num].as_str(),
+    ) {
+      (Some(sandan), Some(room)) => format!("{}（{}）（{}）", num, sandan, room),
+      (Some(sandan), None) => format!("{}（{}）", num, sandan),
+      (None, Some(room)) => format!("{}（？）（{}）", num, room),
+      (None, None) => num.to_string(),
     },
   };
   let num = show_lend_data.num;
@@ -253,7 +265,6 @@ fn show_lend_data_to_string(show_lend_data: &ShowLendData, config_data: &ConfigD
     destination_str = destination_str
   )
 }
-
 
 // 貸出中の品を表示するための文字列を作る
 pub fn make_lend_data_str(lend_data_lst: Vec<LendData>, config_data: ConfigData) -> String {
@@ -290,7 +301,6 @@ pub fn make_lend_data_str(lend_data_lst: Vec<LendData>, config_data: ConfigData)
     .collect()
 }
 
-
 // 引数をデータ構造に落とす
 #[derive(Debug, Clone)]
 pub enum DlmArg {
@@ -309,13 +319,8 @@ pub enum DlmArg {
   Remove(isize),
 }
 
-
 // 大文字小文字を考慮するのが面倒なので、アルファベットに関しては小文字化して評価する
 pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
-
-
-
-
   if arg.is_empty() {
     DlmArg::Null
   } else {

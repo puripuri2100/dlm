@@ -92,20 +92,34 @@ pub fn print_history(command_history: &[String], range: usize) {
   }
 }
 
-pub fn print_lend_success(product_num: &str, destination_num_opt: &Option<String>) {
+pub fn print_lend_success(
+  product_num: &str,
+  destination_num_opt: &Option<String>,
+  lend_num: isize,
+) {
   match destination_num_opt {
-    None => println!("{}を貸し出しました\n", product_num),
+    None => println!("({}): {}を貸し出しました\n", lend_num, product_num),
     Some(destination_num) => {
-      println!("{}を{}に貸し出しました", product_num, destination_num);
+      println!(
+        "({}): {}を{}に貸し出しました",
+        lend_num, product_num, destination_num
+      );
     }
   }
 }
 
-pub fn print_return_success(product_num: &str, destination_num_opt: &Option<String>) {
+pub fn print_return_success(
+  product_num: &str,
+  destination_num_opt: &Option<String>,
+  lend_num: isize,
+) {
   match destination_num_opt {
-    None => println!("{}が返却されました\n", product_num),
+    None => println!("({}): {}が返却されました\n", lend_num, product_num),
     Some(destination_num) => {
-      println!("{}が{}から返却されました", product_num, destination_num);
+      println!(
+        "({}): {}が{}から返却されました",
+        lend_num, product_num, destination_num
+      );
     }
   }
 }

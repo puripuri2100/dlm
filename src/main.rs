@@ -8,22 +8,18 @@ use serde_json::*;
 use std::fs;
 use std::process;
 
-
-
 // パスからファイルの中身を読み取ってserde_jsonで提供される関数でデータ化する
 fn path_to_json_data(path: &str) -> Value {
   let data = fs::read_to_string(path).unwrap();
   serde_json::from_str(&data).unwrap()
 }
 
-
-
-
 // 一行のCSVデータから一つの貸出返却関係のデータを作る
 fn csv_to_lend_data(csv_record: &csv::StringRecord) -> lib::LendData {
   // "操作時刻", "どの種類の操作か", "品名", "貸出先", "削除・編集する先の操作番号", "編集後の品名", "編集後の貸出先", "操作番号",
   // 時刻と操作番号は全ての操作に置いて必要なので先に取得してそれぞれのデータに直す
-  let time: DateTime<FixedOffset> = DateTime::parse_from_rfc3339(csv_record.get(0).unwrap()).unwrap();
+  let time: DateTime<FixedOffset> =
+    DateTime::parse_from_rfc3339(csv_record.get(0).unwrap()).unwrap();
   let num: isize = csv_record.get(7).unwrap().parse().unwrap();
   let lend_type_str: &str = &csv_record.get(1).unwrap().to_owned().to_ascii_lowercase();
   // 操作の中身によって取り出す値を変える
@@ -93,7 +89,6 @@ fn csv_data_to_lend_data(csv_data: Vec<csv::StringRecord>) -> Vec<lib::LendData>
   csv_data.iter().map(|r| csv_to_lend_data(r)).collect()
 }
 
-
 // 受け取ったCSVファイルのパスからCSVデータを取り出し、
 // StringRecordのリストに直した後に貸出返却のデータ群に変換をかける
 fn csv_file_name_to_lend_data(file_name: String) -> Vec<lib::LendData> {
@@ -111,7 +106,6 @@ fn csv_file_name_to_lend_data(file_name: String) -> Vec<lib::LendData> {
     }
   }
 }
-
 
 // 貸出返却のデータを受け取ってCSVファイルの中身を作成し、実際に出力するところまで行う
 fn lend_data_lst_to_output(path: &str, csv_data_lst: Vec<lib::LendData>) {
@@ -225,7 +219,6 @@ fn check_lend_product_num(data: &lib::LendData, product_num: &str) -> bool {
   }
 }
 
-
 // mainの関数
 // ソフトウェアが実行された場合、この関数が実行され、他の関数を次々に呼び出して処理を行っていく
 #[allow(unused_assignments)]
@@ -269,12 +262,17 @@ fn main() {
   // 品名の対応リストと団体の対応リストをそれぞれ作成してまとめる
   let config_file_name_opt = matches.value_of("config_file_name");
   let config_data: lib::ConfigData = match config_file_name_opt {
-    None => lib::make_config_data(&json!(null), &json!(null)),
+    None => lib::make_config_data(json!(null), json!(null), json!(null)),
     Some(config_file_name) => {
       let json_data = path_to_json_data(config_file_name);
       let sizai_json_data = &json_data["sizai"];
       let sandan_json_data = &json_data["sandan"];
-      lib::make_config_data(sizai_json_data, sandan_json_data)
+      let room_json_data = &json_data["room"];
+      lib::make_config_data(
+        sizai_json_data.clone(),
+        sandan_json_data.clone(),
+        room_json_data.clone(),
+      )
     }
   };
 
@@ -319,7 +317,7 @@ fn main() {
       lib::DlmArg::Show => {
         let lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         let lend_data_str = lib::make_lend_data_str(lend_data, config_data.clone());
-        println!("操作番号   時刻               貸出品                                 貸出先");
+        println!("操作番号   時刻               貸出品                                 貸出先（団体名）（場所）");
         println!("{}", lend_data_str)
       }
       // データを記録していたCSVファイルを読み込んでデータ群を抜き出し、
@@ -384,6 +382,7 @@ fn main() {
           .max_by_key(|x| x.num)
           .map(|data_opt| data_opt.num)
           .unwrap_or(0);
+        let lend_num = lend_data_num_max + 1;
         // 現在時刻をタイムゾーン分の9時間分ずらした上で取得
         let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
         // 'check'コマンドへの処理でやったことと同じ検査を行う
@@ -397,10 +396,10 @@ fn main() {
             lend_data.push(lib::LendData {
               time: time_fixed_offset,
               lend_type: lib::LendType::Lend(product_num.clone(), destination_num_opt.clone()),
-              num: (lend_data_num_max + 1),
+              num: lend_num,
             });
             lend_data_lst_to_output(data_file_name, lend_data);
-            print_message::print_lend_success(&product_num, &destination_num_opt);
+            print_message::print_lend_success(&product_num, &destination_num_opt, lend_num);
           }
           Some(_) => println!(
             "!  {}が既に貸し出されているのでこの操作を行うことはできません\n",
@@ -416,6 +415,7 @@ fn main() {
           .max_by_key(|x| x.num)
           .map(|data_opt| data_opt.num)
           .unwrap_or(0);
+        let lend_num = lend_data_num_max + 1;
         let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
         // 検査を行う
         // 検査を通過したらリストに登録してファイル更新
@@ -431,10 +431,10 @@ fn main() {
             lend_data.push(lib::LendData {
               time: time_fixed_offset,
               lend_type: lib::LendType::Return(product_num.clone(), destination_num_opt.clone()),
-              num: (lend_data_num_max + 1),
+              num: lend_num,
             });
             lend_data_lst_to_output(data_file_name, lend_data);
-            print_message::print_return_success(&product_num, &destination_num_opt);
+            print_message::print_return_success(&product_num, &destination_num_opt, lend_num);
           }
         }
       }
