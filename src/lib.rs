@@ -317,7 +317,7 @@ pub fn make_lend_data_str(lend_data_lst: Vec<LendData>, config_data: ConfigData)
 
 // 引数をデータ構造に落とす
 #[derive(Debug, Clone)]
-pub enum Arg {
+pub enum DlmArg {
   Null,
   Help,
   Exit,
@@ -335,89 +335,67 @@ pub enum Arg {
 
 
 // 大文字小文字を考慮するのが面倒なので、アルファベットに関しては小文字化して評価する
-pub fn parse_arg(arg: Vec<&str>) -> Arg {
+pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
+
+
+
+
   if arg.is_empty() {
-    Arg::Null
+    DlmArg::Null
   } else {
     let arg_command_name: &str = &arg[0].to_owned().to_ascii_lowercase();
     match arg_command_name {
-      "exit" => Arg::Exit,
-      "help" => Arg::Help,
+      "exit" => DlmArg::Exit,
+      "help" => DlmArg::Help,
       "history" => match arg.get(1) {
-        None => Arg::History(10),
+        None => DlmArg::History(10),
         Some(s) => {
           let n = s.parse().unwrap();
-          Arg::History(n)
+          DlmArg::History(n)
         }
       },
-      "show" => Arg::Show,
-      "all" => Arg::AllPrint,
-      "check" => Arg::Check,
-      "lend" => match arg.get(1) {
-        None => Arg::MissingArgument,
+      "show" => DlmArg::Show,
+      "all" => DlmArg::AllPrint,
+      "check" => DlmArg::Check,
+      "lend" | "l" => match arg.get(1) {
+        None => DlmArg::MissingArgument,
         Some(s1) => match arg.get(2) {
-          None => Arg::Lend(s1.to_string(), None),
+          None => DlmArg::Lend(s1.to_string(), None),
           Some(s2) => {
             if s2.is_empty() {
-              Arg::Lend(s1.to_string(), None)
+              DlmArg::Lend(s1.to_string(), None)
             } else {
-              Arg::Lend(s1.to_string(), Some(s2.to_string()))
+              DlmArg::Lend(s1.to_string(), Some(s2.to_string()))
             }
           }
         },
       },
-      "l" => match arg.get(1) {
-        None => Arg::MissingArgument,
+      "return" | "r" => match arg.get(1) {
+        None => DlmArg::MissingArgument,
         Some(s1) => match arg.get(2) {
-          None => Arg::Lend(s1.to_string(), None),
+          None => DlmArg::Return(s1.to_string(), None),
           Some(s2) => {
             if s2.is_empty() {
-              Arg::Lend(s1.to_string(), None)
+              DlmArg::Return(s1.to_string(), None)
             } else {
-              Arg::Lend(s1.to_string(), Some(s2.to_string()))
-            }
-          }
-        },
-      },
-      "return" => match arg.get(1) {
-        None => Arg::MissingArgument,
-        Some(s1) => match arg.get(2) {
-          None => Arg::Return(s1.to_string(), None),
-          Some(s2) => {
-            if s2.is_empty() {
-              Arg::Return(s1.to_string(), None)
-            } else {
-              Arg::Return(s1.to_string(), Some(s2.to_string()))
-            }
-          }
-        },
-      },
-      "r" => match arg.get(1) {
-        None => Arg::MissingArgument,
-        Some(s1) => match arg.get(2) {
-          None => Arg::Return(s1.to_string(), None),
-          Some(s2) => {
-            if s2.is_empty() {
-              Arg::Return(s1.to_string(), None)
-            } else {
-              Arg::Return(s1.to_string(), Some(s2.to_string()))
+              DlmArg::Return(s1.to_string(), Some(s2.to_string()))
             }
           }
         },
       },
       "edit" => match arg.get(1) {
-        None => Arg::MissingArgument,
+        None => DlmArg::MissingArgument,
         Some(s1) => match s1.parse() {
-          Err(_) => Arg::MissingArgument,
+          Err(_) => DlmArg::MissingArgument,
           Ok(i) => match arg.get(2) {
-            None => Arg::MissingArgument,
+            None => DlmArg::MissingArgument,
             Some(s2) => match arg.get(3) {
-              None => Arg::Edit(i, s2.to_string(), None),
+              None => DlmArg::Edit(i, s2.to_string(), None),
               Some(s3) => {
                 if s2.is_empty() {
-                  Arg::Edit(i, s2.to_string(), None)
+                  DlmArg::Edit(i, s2.to_string(), None)
                 } else {
-                  Arg::Edit(i, s2.to_string(), Some(s3.to_string()))
+                  DlmArg::Edit(i, s2.to_string(), Some(s3.to_string()))
                 }
               }
             },
@@ -425,15 +403,15 @@ pub fn parse_arg(arg: Vec<&str>) -> Arg {
         },
       },
       "remove" => match arg.get(1) {
-        None => Arg::MissingArgument,
+        None => DlmArg::MissingArgument,
         Some(s) => match s.parse() {
-          Err(_) => Arg::MissingArgument,
-          Ok(i) => Arg::Remove(i),
+          Err(_) => DlmArg::MissingArgument,
+          Ok(i) => DlmArg::Remove(i),
         },
       },
       // コメント扱い
-      "#" => Arg::Null,
-      name => Arg::NotFoundCommandName(name.to_owned()),
+      "#" => DlmArg::Null,
+      name => DlmArg::NotFoundCommandName(name.to_owned()),
     }
   }
 }

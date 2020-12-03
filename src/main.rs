@@ -332,20 +332,20 @@ fn main() {
     // 引数のデータ構造に対応する処理と反応を行います
     match arg {
       // コメントや何も入力されなかったときは何もしないでループを回す
-      lib::Arg::Null => (),
+      lib::DlmArg::Null => (),
       // 'exit'はループから脱出して正常終了
-      lib::Arg::Exit => break,
+      lib::DlmArg::Exit => break,
       // helpメッセージを表示
-      lib::Arg::Help => print_message::print_help(),
+      lib::DlmArg::Help => print_message::print_help(),
       // 使えるコマンドではないというメッセージを表示して再度の入力を促す
-      lib::Arg::NotFoundCommandName(name) => print_message::print_not_found_command_name(name),
+      lib::DlmArg::NotFoundCommandName(name) => print_message::print_not_found_command_name(name),
       // 「引数の数や型が間違っている」ということを伝えて再度の入力を促す
-      lib::Arg::MissingArgument => print_message::print_missing_argument(),
+      lib::DlmArg::MissingArgument => print_message::print_missing_argument(),
       // 記録していたコマンド文字列を表示する
-      lib::Arg::History(n) => print_message::print_history(&arg_command_history_vec, n),
+      lib::DlmArg::History(n) => print_message::print_history(&arg_command_history_vec, n),
       // データを記録していたCSVファイルを読み込んでデータ群を抜き出し、
       // ヘッダーを出力した後に、データから作成した文字列を出力する
-      lib::Arg::Show => {
+      lib::DlmArg::Show => {
         let lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         let lend_data_str = lib::make_lend_data_str(lend_data, config_data.clone());
         println!("操作番号   時刻               貸出品                                 貸出先");
@@ -354,7 +354,7 @@ fn main() {
       // データを記録していたCSVファイルを読み込んでデータ群を抜き出し、
       // 実際に貸出と返却の処理を仮想的に行いながら二重貸出等の間違いを探す
       // 間違いが検出されたらその中身を出力し、全てのデータについて検査し終わったら終了
-      lib::Arg::Check => {
+      lib::DlmArg::Check => {
         println!("検査を開始します\n--- --- ---\n");
         // 操作の削除や編集を反映し終えて貸出と返却のみで構成されたデータ群を作成する
         let lend_data_lst =
@@ -404,7 +404,7 @@ fn main() {
         }
         println!("--- --- ---\n検査を終了しました\n");
       }
-      lib::Arg::Lend(product_num, destination_num_opt) => {
+      lib::DlmArg::Lend(product_num, destination_num_opt) => {
         // CSVファイルへのパスから生のデータ群を取り出す
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         // データ群の中で最大の操作番号を探し出す。
@@ -437,7 +437,7 @@ fn main() {
           ),
         }
       }
-      lib::Arg::Return(product_num, destination_num_opt) => {
+      lib::DlmArg::Return(product_num, destination_num_opt) => {
         // Lendのときとほとんど同じ
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         let lend_data_num_max = lend_data
@@ -467,7 +467,7 @@ fn main() {
           }
         }
       }
-      lib::Arg::Edit(num, new_product_num, new_destination_num_opt) => {
+      lib::DlmArg::Edit(num, new_product_num, new_destination_num_opt) => {
         // Lendとほぼ同じだが、編集する対象の操作が未来のものであった場合は不正とみなしてメッセージを表示して終了
         // また、本当に意図した編集内容になっているかを確認するためのメッセージを表示する
         // 'n'または'N'が入力された場合のみ操作を中止するが、それ以外の任意の文字列だった場合は編集を行う
@@ -509,7 +509,7 @@ fn main() {
           }
         }
       }
-      lib::Arg::Remove(num) => {
+      lib::DlmArg::Remove(num) => {
         // Editとほぼ同じ
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         let lend_data_num_max = lend_data
@@ -543,7 +543,7 @@ fn main() {
           }
         }
       }
-      lib::Arg::AllPrint => {
+      lib::DlmArg::AllPrint => {
         // CSVファイルへのパスから生成したデータ群を文字列化してそのまま出力
         let lend_data_lst = csv_file_name_to_lend_data(data_file_name.to_owned());
         for lend_data in lend_data_lst {
