@@ -356,7 +356,7 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
         for i in 1..(len - 1) {
           v.push(arg[i].to_string())
         }
-        DlmArg::Lend(v, arg[len].to_string())
+        DlmArg::Return(v, arg[len].to_string())
       }
       "edit" => {
         // <編集対象に付けられた通し番号> <編集後の品名の番号> <編集後の貸出先の番号>
