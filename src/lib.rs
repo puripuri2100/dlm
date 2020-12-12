@@ -26,11 +26,11 @@ pub fn make_config_data(
 #[derive(Debug, Clone, PartialEq)]
 pub enum LendType {
   // 貸出：「貸し出した品名」と「貸出先」
-  Lend(String, Option<String>),
+  Lend(String, String),
   // 返却：「返された品名」と「返却先」
-  Return(String, Option<String>),
+  Return(String, String),
   // 編集：「編集する操作対象に付けられた通し番号」と「編集後の品名」と「編集後の貸出先」
-  Edit(isize, String, Option<String>),
+  Edit(isize, String, String),
   // 削除：「削除する操作対象に付けられた通し番号」
   Remove(isize),
 }
@@ -49,7 +49,7 @@ pub struct LendData {
 pub struct ShowLendData {
   pub time: chrono::DateTime<FixedOffset>,
   pub product_num: String,
-  pub destination_num_opt: Option<String>,
+  pub destination_num: String,
   pub num: isize,
 }
 
@@ -75,22 +75,17 @@ impl ToString for LendData {
     let num = self.num;
     let lend_type = self.clone().lend_type;
     let lend_type_str = match lend_type {
-      LendType::Lend(product_num, destination_num_opt) => match destination_num_opt {
-        None => format!("{}を貸出", product_num),
-        Some(destination_num) => format!("{}を{}へ貸出", product_num, destination_num),
-      },
-      LendType::Return(product_num, destination_num_opt) => match destination_num_opt {
-        None => format!("{}を返却", product_num),
-        Some(destination_num) => format!("{}を{}が返却", product_num, destination_num),
-      },
-      LendType::Edit(num, new_product_num, new_destination_num_opt) => {
-        match new_destination_num_opt {
-          None => format!("{}番目の操作の品名を\"{}\"に修正する", num, new_product_num),
-          Some(new_destination_num) => format!(
-            "{}番目の操作の品名を\"{}\"に、相手を\"{}\"に修正する",
-            num, new_product_num, new_destination_num
-          ),
-        }
+      LendType::Lend(product_num, destination_num) => {
+        format!("{}を{}へ貸出", product_num, destination_num)
+      }
+      LendType::Return(product_num, destination_num) => {
+        format!("{}を{}が返却", product_num, destination_num)
+      }
+      LendType::Edit(num, new_product_num, new_destination_num) => {
+        format!(
+          "{}番目の操作の品名を\"{}\"に、相手を\"{}\"に修正する",
+          num, new_product_num, new_destination_num
+        )
       }
       LendType::Remove(num) => format!("{}番目の操作を無かったことにする", num),
     };
@@ -108,12 +103,12 @@ fn check_sort_lend_data() {
   let mut lst = vec![
     LendData {
       time: time,
-      lend_type: LendType::Lend(String::new(), None),
+      lend_type: LendType::Lend(String::new(), String::new()),
       num: 1,
     },
     LendData {
       time: time,
-      lend_type: LendType::Edit(1, String::new(), None),
+      lend_type: LendType::Edit(1, String::new(), String::new()),
       num: 2,
     },
     LendData {
@@ -123,7 +118,7 @@ fn check_sort_lend_data() {
     },
     LendData {
       time: time,
-      lend_type: LendType::Lend(String::new(), None),
+      lend_type: LendType::Lend(String::new(), String::new()),
       num: 4,
     },
   ];
@@ -136,17 +131,17 @@ fn check_sort_lend_data() {
     },
     LendData {
       time: time,
-      lend_type: LendType::Edit(1, String::new(), None),
+      lend_type: LendType::Edit(1, String::new(), String::new()),
       num: 2,
     },
     LendData {
       time: time,
-      lend_type: LendType::Lend(String::new(), None),
+      lend_type: LendType::Lend(String::new(), String::new()),
       num: 4,
     },
     LendData {
       time: time,
-      lend_type: LendType::Lend(String::new(), None),
+      lend_type: LendType::Lend(String::new(), String::new()),
       num: 1,
     },
   ];
@@ -241,18 +236,17 @@ fn show_lend_data_to_string(show_lend_data: &ShowLendData, config_data: &ConfigD
     None => String::new(),
     Some(s) => format!("（{}）", s),
   };
-  let destination_num_opt = &show_lend_data.destination_num_opt;
-  let destination_str = match destination_num_opt {
-    None => String::new(),
-    Some(num) => match (
-      config_data.sandan[num].as_str(),
-      config_data.room[num].as_str(),
+  let destination_num = &show_lend_data.destination_num;
+  let destination_str = {
+    match (
+      config_data.sandan[destination_num].as_str(),
+      config_data.room[destination_num].as_str(),
     ) {
-      (Some(sandan), Some(room)) => format!("{}（{}）（{}）", num, sandan, room),
-      (Some(sandan), None) => format!("{}（{}）", num, sandan),
-      (None, Some(room)) => format!("{}（？）（{}）", num, room),
-      (None, None) => num.to_string(),
-    },
+      (Some(sandan), Some(room)) => format!("{}（{}）（{}）", destination_num, sandan, room),
+      (Some(sandan), None) => format!("{}（{}）", destination_num, sandan),
+      (None, Some(room)) => format!("{}（？）（{}）", destination_num, room),
+      (None, None) => destination_num.to_string(),
+    }
   };
   let num = show_lend_data.num;
   let num_str = format!("({}):", num);
@@ -277,10 +271,10 @@ pub fn make_lend_data_str(lend_data_lst: Vec<LendData>, config_data: ConfigData)
   for lend_data in lend_data_lst.iter() {
     let lend_type = &lend_data.lend_type;
     match lend_type {
-      LendType::Lend(product_num, destination_num_opt) => lend_vec.push(ShowLendData {
+      LendType::Lend(product_num, destination_num) => lend_vec.push(ShowLendData {
         time: lend_data.time,
         product_num: product_num.clone(),
-        destination_num_opt: destination_num_opt.clone(),
+        destination_num: destination_num.clone(),
         num: lend_data.num,
       }),
       // 貸出品の番号が一致していたら削除
@@ -313,9 +307,9 @@ pub enum DlmArg {
   Show,
   AllPrint,
   Check,
-  Lend(String, Option<String>),
-  Return(String, Option<String>),
-  Edit(isize, String, Option<String>),
+  Lend(Vec<String>, String),
+  Return(Vec<String>, String),
+  Edit(isize, String, String),
   Remove(isize),
 }
 
@@ -338,51 +332,48 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
       "show" => DlmArg::Show,
       "all" => DlmArg::AllPrint,
       "check" => DlmArg::Check,
-      "lend" | "l" => match arg.get(1) {
-        None => DlmArg::MissingArgument,
-        Some(s1) => match arg.get(2) {
-          None => DlmArg::Lend(s1.to_string(), None),
-          Some(s2) => {
-            if s2.is_empty() {
-              DlmArg::Lend(s1.to_string(), None)
-            } else {
-              DlmArg::Lend(s1.to_string(), Some(s2.to_string()))
+      "lend" | "l" => {
+        // <貸出品の番号1> <貸出品の番号2> .. <貸出品の番号n> <貸出先の番号>
+        match arg.get(1) {
+          None => DlmArg::MissingArgument,
+          Some(_) => {
+            let mut v = Vec::new();
+            let len = arg.len();
+            for i in 1..(len - 1) {
+              v.push(arg[i].to_string())
+            }
+            match arg.iter().last() {
+              None => DlmArg::MissingArgument,
+              Some(s) => DlmArg::Lend(v, s.to_string()),
             }
           }
-        },
-      },
-      "return" | "r" => match arg.get(1) {
-        None => DlmArg::MissingArgument,
-        Some(s1) => match arg.get(2) {
-          None => DlmArg::Return(s1.to_string(), None),
-          Some(s2) => {
-            if s2.is_empty() {
-              DlmArg::Return(s1.to_string(), None)
-            } else {
-              DlmArg::Return(s1.to_string(), Some(s2.to_string()))
-            }
-          }
-        },
-      },
-      "edit" => match arg.get(1) {
-        None => DlmArg::MissingArgument,
-        Some(s1) => match s1.parse() {
-          Err(_) => DlmArg::MissingArgument,
-          Ok(i) => match arg.get(2) {
-            None => DlmArg::MissingArgument,
-            Some(s2) => match arg.get(3) {
-              None => DlmArg::Edit(i, s2.to_string(), None),
-              Some(s3) => {
-                if s2.is_empty() {
-                  DlmArg::Edit(i, s2.to_string(), None)
-                } else {
-                  DlmArg::Edit(i, s2.to_string(), Some(s3.to_string()))
-                }
-              }
+        }
+      }
+      "return" | "r" => {
+        // <返却品の番号1> <返却品の番号2> .. <返却品の番号n> <返却元の番号>
+        let mut v = Vec::new();
+        let len = arg.len();
+        for i in 1..(len - 1) {
+          v.push(arg[i].to_string())
+        }
+        DlmArg::Lend(v, arg[len].to_string())
+      }
+      "edit" => {
+        // <編集対象に付けられた通し番号> <編集後の品名の番号> <編集後の貸出先の番号>
+        match arg.get(1) {
+          None => DlmArg::MissingArgument,
+          Some(s1) => match s1.parse() {
+            Err(_) => DlmArg::MissingArgument,
+            Ok(i) => match arg.get(2) {
+              None => DlmArg::MissingArgument,
+              Some(s2) => match arg.get(3) {
+                None => DlmArg::MissingArgument,
+                Some(s3) => DlmArg::Edit(i, s2.to_string(), s3.to_string()),
+              },
             },
           },
-        },
-      },
+        }
+      }
       "remove" => match arg.get(1) {
         None => DlmArg::MissingArgument,
         Some(s) => match s.parse() {

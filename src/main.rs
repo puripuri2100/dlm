@@ -27,49 +27,21 @@ fn csv_to_lend_data(csv_record: &csv::StringRecord) -> lib::LendData {
     "lend" => {
       // 貸出：「貸し出した品名」と「貸出先」
       let product = csv_record.get(2).unwrap().to_owned();
-      let destination_opt = match csv_record.get(3).map(|s| s.to_owned()) {
-        None => None,
-        Some(s) => {
-          if s.is_empty() {
-            // から文字列も「無し」として扱う
-            None
-          } else {
-            Some(s)
-          }
-        }
-      };
-      lib::LendType::Lend(product, destination_opt)
+      let destination = csv_record.get(3).unwrap().to_owned();
+      lib::LendType::Lend(product, destination)
     }
     "return" => {
       // 返却：「返された品名」と「返却先」
       let product = csv_record.get(2).unwrap().to_owned();
-      let destination_opt = match csv_record.get(3).map(|s| s.to_owned()) {
-        None => None,
-        Some(s) => {
-          if s.is_empty() {
-            None
-          } else {
-            Some(s)
-          }
-        }
-      };
-      lib::LendType::Return(product, destination_opt)
+      let destination = csv_record.get(3).unwrap().to_owned();
+      lib::LendType::Return(product, destination)
     }
     "edit" => {
       // 編集：「編集する操作対象に付けられた通し番号」と「編集後の品名」と「編集後の貸出先」
       let num = csv_record.get(4).unwrap().parse().unwrap();
       let new_product = csv_record.get(5).unwrap().to_owned();
-      let new_destination_opt = match csv_record.get(3).map(|s| s.to_owned()) {
-        None => None,
-        Some(s) => {
-          if s.is_empty() {
-            None
-          } else {
-            Some(s)
-          }
-        }
-      };
-      lib::LendType::Edit(num, new_product, new_destination_opt)
+      let new_destination = csv_record.get(3).unwrap().to_owned();
+      lib::LendType::Edit(num, new_product, new_destination)
     }
     "remove" => {
       // 編集：「削除する操作対象に付けられた通し番号」
@@ -132,17 +104,13 @@ fn lend_data_lst_to_output(path: &str, csv_data_lst: Vec<lib::LendData>) {
     let lend_type = lend_data.clone().lend_type;
     match lend_type {
       // 貸出：「貸し出した品名」と「貸出先」
-      lib::LendType::Lend(product_name, destination_opt) => {
-        let destination_string = match destination_opt {
-          None => String::new(),
-          Some(s) => s,
-        };
+      lib::LendType::Lend(product_name, destination) => {
         wtr
           .write_record(&[
             time_str,
             "Lend",
             &product_name,
-            &destination_string,
+            &destination,
             empty_str,
             empty_str,
             empty_str,
@@ -151,11 +119,7 @@ fn lend_data_lst_to_output(path: &str, csv_data_lst: Vec<lib::LendData>) {
           .unwrap();
       }
       // 返却：「返された品名」と「返却先」
-      lib::LendType::Return(product_name, destination_opt) => {
-        let destination_string = match destination_opt {
-          None => String::new(),
-          Some(s) => s,
-        };
+      lib::LendType::Return(product_name, destination_string) => {
         wtr
           .write_record(&[
             time_str,
@@ -170,11 +134,7 @@ fn lend_data_lst_to_output(path: &str, csv_data_lst: Vec<lib::LendData>) {
           .unwrap();
       }
       // 編集：「編集する操作対象に付けられた通し番号」と「編集後の品名」と「編集後の貸出先」
-      lib::LendType::Edit(num, new_product_name, new_destination_opt) => {
-        let new_destination_string = match new_destination_opt {
-          None => String::new(),
-          Some(s) => s,
-        };
+      lib::LendType::Edit(num, new_product_name, new_destination_string) => {
         wtr
           .write_record(&[
             time_str,
@@ -373,7 +333,7 @@ fn main() {
         }
         println!("--- --- ---\n検査を終了しました\n");
       }
-      lib::DlmArg::Lend(product_num, destination_num_opt) => {
+      lib::DlmArg::Lend(product_num_lst, destination_num) => {
         // CSVファイルへのパスから生のデータ群を取り出す
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         // データ群の中で最大の操作番号を探し出す。
@@ -382,32 +342,65 @@ fn main() {
           .max_by_key(|x| x.num)
           .map(|data_opt| data_opt.num)
           .unwrap_or(0);
-        let lend_num = lend_data_num_max + 1;
-        // 現在時刻をタイムゾーン分の9時間分ずらした上で取得
-        let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
-        // 'check'コマンドへの処理でやったことと同じ検査を行う
-        // 検査を通過したらリストに登録してファイル更新
-        // 検査を通らなかったらメッセージを表示して終了
-        match lend_data
-          .iter()
-          .find(|data| check_lend_product_num(data, &product_num))
-        {
-          None => {
-            lend_data.push(lib::LendData {
+        let mut lend_num = lend_data_num_max;
+        // 貸出品のリストに対して
+        //  - 現在時刻の取得
+        //  - 検査
+        // を行い、全部が検査を通った時に書き込む
+        // 一つでも検査を通らなかったらエラーとして処理し、なにも書き込まない
+        let mut lend_tmp_vec = Vec::new();
+        for product_num in product_num_lst.iter() {
+          lend_num = lend_num + 1;
+          // 現在時刻をタイムゾーン分の9時間分ずらした上で取得
+          let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
+          // 'check'コマンドへの処理でやったことと同じ検査を行う
+          // 検査を通過したらリストに登録してファイル更新
+          // 検査を通らなかったらメッセージを表示して終了
+          if lend_data
+            .iter()
+            .any(|data| check_lend_product_num(data, &product_num))
+            || lend_tmp_vec
+              .iter()
+              .any(|data| check_lend_product_num(data, &product_num))
+          {
+            println!(
+              "!  {}が既に貸し出されているのでこの操作を行うことはできません",
+              product_num
+            );
+            break;
+          } else {
+            // 成功したものを一時リストに登録していく
+            lend_tmp_vec.push(lib::LendData {
               time: time_fixed_offset,
-              lend_type: lib::LendType::Lend(product_num.clone(), destination_num_opt.clone()),
+              lend_type: lib::LendType::Lend(product_num.clone(), destination_num.clone()),
               num: lend_num,
             });
-            lend_data_lst_to_output(data_file_name, lend_data);
-            print_message::print_lend_success(&product_num, &destination_num_opt, &lend_num);
           }
-          Some(_) => println!(
-            "!  {}が既に貸し出されているのでこの操作を行うことはできません\n",
-            product_num
-          ),
+        }
+        // 最初のproduct_num_lstの長さとtmp_vecの長さを比較し、一緒なら全部OKだったということ
+        // 短かったらどこかで失敗しているので、そのまま中止
+        if product_num_lst.len() == lend_tmp_vec.len() {
+          let tmp_vec = lend_tmp_vec.clone();
+          // 一時リストを結合させる
+          lend_data.append(&mut lend_tmp_vec);
+          // 書き出し
+          lend_data_lst_to_output(data_file_name, lend_data);
+          // 成功メッセージの出力
+          for lend_tmp in tmp_vec {
+            let lend_num = lend_tmp.num;
+            match lend_tmp.lend_type {
+              lib::LendType::Lend(product_num, destination_num) => {
+                print_message::print_lend_success(&product_num, &destination_num, &lend_num);
+              }
+              _ => {}
+            }
+          }
+        } else {
+          // 検査不合格が発声していた場合
+          println!("今回行われた操作は全て中止されました。再度正しい貸出を実行してください。\n")
         }
       }
-      lib::DlmArg::Return(product_num, destination_num_opt) => {
+      lib::DlmArg::Return(product_num_lst, destination_num_opt) => {
         // Lendのときとほとんど同じ
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         let lend_data_num_max = lend_data
@@ -415,30 +408,63 @@ fn main() {
           .max_by_key(|x| x.num)
           .map(|data_opt| data_opt.num)
           .unwrap_or(0);
-        let lend_num = lend_data_num_max + 1;
-        let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
-        // 検査を行う
-        // 検査を通過したらリストに登録してファイル更新
-        match lend_data
-          .iter()
-          .find(|data| check_lend_product_num(data, &product_num))
-        {
-          None => println!(
-            "!  {}がまだ貸し出されてないのでこの操作を行うことは出来ません\n",
-            product_num
-          ),
-          Some(_) => {
-            lend_data.push(lib::LendData {
+        let mut lend_num = lend_data_num_max;
+        // 返却品のリストに対して
+        //  - 現在時刻の取得
+        //  - 検査
+        // を行い、全部が検査を通った時に書き込む
+        // 一つでも検査を通らなかったらエラーとして処理し、なにも書き込まない
+        let mut return_tmp_vec = Vec::new();
+        for product_num in product_num_lst.iter() {
+          lend_num = lend_num + 1;
+          // 現在時刻をタイムゾーン分の9時間分ずらした上で取得
+          let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
+          // 'check'コマンドへの処理でやったことと同じ検査を行う
+          // 検査を通過したらリストに登録してファイル更新
+          // 検査を通らなかったらメッセージを表示して終了
+          if lend_data
+            .iter()
+            .any(|data| check_lend_product_num(data, &product_num))
+            || return_tmp_vec
+              .iter()
+              .any(|data| check_lend_product_num(data, &product_num))
+          {
+            return_tmp_vec.push(lib::LendData {
               time: time_fixed_offset,
               lend_type: lib::LendType::Return(product_num.clone(), destination_num_opt.clone()),
               num: lend_num,
             });
-            lend_data_lst_to_output(data_file_name, lend_data);
-            print_message::print_return_success(&product_num, &destination_num_opt, &lend_num);
+          } else {
+            println!(
+              "!  {}がまだ貸し出されてないのでこの操作を行うことは出来ません",
+              product_num
+            );
+            break;
           }
         }
+        // 最初のproduct_num_lstの長さとtmp_vecの長さを比較し、一緒なら全部OKだったということ
+        // 短かったらどこかで失敗しているので、そのまま中止
+        if product_num_lst.len() == return_tmp_vec.len() {
+          // 一時リストを結合させる
+          lend_data.append(&mut return_tmp_vec);
+          // 書き出し
+          lend_data_lst_to_output(data_file_name, lend_data);
+          // 成功メッセージの出力
+          for lend_tmp in return_tmp_vec {
+            let lend_num = lend_tmp.num;
+            match lend_tmp.lend_type {
+              lib::LendType::Return(product_num, destination_num) => {
+                print_message::print_return_success(&product_num, &destination_num, &lend_num);
+              }
+              _ => {}
+            }
+          }
+        } else {
+          // 検査不合格が発声していた場合
+          println!("今回行われた操作は全て中止されました。再度正しい貸出を実行してください。\n")
+        }
       }
-      lib::DlmArg::Edit(num, new_product_num, new_destination_num_opt) => {
+      lib::DlmArg::Edit(num, new_product_num, new_destination_num) => {
         // Lendとほぼ同じだが、編集する対象の操作が未来のものであった場合は不正とみなしてメッセージを表示して終了
         // また、本当に意図した編集内容になっているかを確認するためのメッセージを表示する
         // 'n'または'N'が入力された場合のみ操作を中止するが、それ以外の任意の文字列だった場合は編集を行う
@@ -456,14 +482,11 @@ fn main() {
           let data = lib::get_lend_data(&lend_data, num).unwrap();
           let data_str = data.to_string();
           println!(
-            "{}\nという{}番の操作の品名を\"{}\"に{}変更します\n本当に良いですか？[Y/n]\n    >",
+            "{}\nという{}番の操作の品名を\"{}\"に、相手を\"{}\"に変更します\n本当に良いですか？[Y/n]\n    >",
             data_str,
             num,
             new_product_num,
-            (match new_destination_num_opt.clone() {
-              None => String::new(),
-              Some(s) => format!("、相手を\"{}\"に", s),
-            })
+            new_destination_num
           );
           let mut s = String::new();
           std::io::stdin().read_line(&mut s).ok();
@@ -476,7 +499,7 @@ fn main() {
                 lend_type: lib::LendType::Edit(
                   num,
                   new_product_num.clone(),
-                  new_destination_num_opt.clone(),
+                  new_destination_num.clone(),
                 ),
                 num: lend_num,
               });
@@ -484,7 +507,7 @@ fn main() {
               print_message::print_edit_success(
                 &num,
                 &new_product_num,
-                &new_destination_num_opt,
+                &new_destination_num,
                 &lend_num,
               );
             }
@@ -507,7 +530,7 @@ fn main() {
           let data = lib::get_lend_data(&lend_data, num).unwrap();
           let data_str = data.to_string();
           println!(
-            "{}\nという{}番の操作を無かったことにします\n本当に良いですか？[Y/n]\n    >",
+            "{}\nという{}番の操作を無かったことにします\n本当に良いですか？[Y/n] >",
             data_str, num
           );
           let mut s = String::new();

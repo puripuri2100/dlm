@@ -22,21 +22,18 @@ pub fn print_help() {
 
   exit      : 終了します
 
-  lend      : 'lend <貸出品の番号> <貸出先の番号>' で貸出を登録します
-              <貸出先の番号>は省略可能です
+  lend      : 'lend <貸出品の番号1> <貸出品の番号2> .. <貸出品の番号n> <貸出先の番号>' で貸出を登録します
 
   l         : 'lend' の省略形です
               使い方は'lend'と変わりません
 
-  return    : 'return <返却品の番号> <返却元の番号>' で返却を登録します
-              <返却元の番号>は省略可能です
+  return    : 'return <返却品の番号1> <返却品の番号2> .. <返却品の番号n> <返却元の番号>' で返却を登録します
 
   r         : 'return' の省略形です
               使い方は'return'と変わりません
 
   edit      : 'edit <編集対象に付けられた通し番号> <編集後の品名の番号> <編集後の貸出先の番号>'
               で以前に行った操作を改変できます
-              <編集後の貸出先の番号>は省略可能です
               'remove'と'edit'で行った操作を編集することは出来ません
 
   remove    : 'remove <編集対象に付けられた通し番号>'
@@ -92,56 +89,30 @@ pub fn print_history(command_history: &[String], range: usize) {
   }
 }
 
-pub fn print_lend_success(
-  product_num: &str,
-  destination_num_opt: &Option<String>,
-  lend_num: &isize,
-) {
-  match destination_num_opt {
-    None => println!("({}): {}を貸し出しました\n", lend_num, product_num),
-    Some(destination_num) => {
-      println!(
-        "({}): {}を{}に貸し出しました",
-        lend_num, product_num, destination_num
-      );
-    }
-  }
+pub fn print_lend_success(product_num: &str, destination_num: &String, lend_num: &isize) {
+  println!(
+    "({}): {}を{}に貸し出しました",
+    lend_num, product_num, destination_num
+  );
 }
 
-pub fn print_return_success(
-  product_num: &str,
-  destination_num_opt: &Option<String>,
-  lend_num: &isize,
-) {
-  match destination_num_opt {
-    None => println!("({}): {}が返却されました\n", lend_num, product_num),
-    Some(destination_num) => {
-      println!(
-        "({}): {}が{}から返却されました",
-        lend_num, product_num, destination_num
-      );
-    }
-  }
+pub fn print_return_success(product_num: &str, destination_num: &String, lend_num: &isize) {
+  println!(
+    "({}): {}が{}から返却されました",
+    lend_num, product_num, destination_num
+  );
 }
 
 pub fn print_edit_success(
   num: &isize,
   new_product_num: &str,
-  new_destination_num_opt: &Option<String>,
+  new_destination_num: &String,
   lend_num: &isize,
 ) {
-  match new_destination_num_opt {
-    None => println!(
-      "({}): 操作番号{}の品名を「{}」に書き換えました\n",
-      lend_num, num, new_product_num
-    ),
-    Some(new_destination_num) => {
-      println!(
-        "({}): 操作番号{}の品名を「{}」に、貸出先を「{}」に書き換えました",
-        lend_num, num, new_product_num, new_destination_num
-      );
-    }
-  }
+  println!(
+    "({}): 操作番号{}の品名を「{}」に、貸出先を「{}」に書き換えました",
+    lend_num, num, new_product_num, new_destination_num
+  );
 }
 
 pub fn print_remove_success(num: &isize, lend_num: &isize) {
