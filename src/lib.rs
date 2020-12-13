@@ -325,8 +325,10 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
       "history" => match arg.get(1) {
         None => DlmArg::History(10),
         Some(s) => {
-          let n = s.parse().unwrap();
-          DlmArg::History(n)
+          match s.parse() {
+            Err(_) => {DlmArg::MissingArgument}
+            Ok(i) => {DlmArg::History(i)}
+          }
         }
       },
       "show" => DlmArg::Show,
