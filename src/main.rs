@@ -211,7 +211,7 @@ fn main() {
     Some(s) => s,
     None => {
       eprintln!("ファイル名を入力してください！");
-      process::exit(0)
+      process::exit(1)
     }
   };
 
