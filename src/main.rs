@@ -486,36 +486,44 @@ fn main() {
         } else {
           let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
           let data = lib::get_lend_data(&lend_data, num).unwrap();
-          let data_str = data.to_string();
-          println!(
-            "{}\nという{}番の操作の品名を\"{}\"に、相手を\"{}\"に変更します\n本当に良いですか？[Y/n]\n    >",
-            data_str,
-            num,
-            new_product_num,
-            new_destination_num
-          );
-          let mut s = String::new();
-          std::io::stdin().read_line(&mut s).ok();
-          let s: &str = &s.trim().to_owned().to_ascii_lowercase();
-          match s {
-            "n" => println!("操作を中止しました"),
+          match data.lend_type {
+            // 対象がEditとRemoveの時は不正とみなして終了
+            lib::LendType::Edit(_, _, _) | lib::LendType::Remove(_) => {
+              println!("!  'remove'または'edit'で行った操作を編集することは出来ません");
+            }
             _ => {
-              lend_data.push(lib::LendData {
-                time: time_fixed_offset,
-                lend_type: lib::LendType::Edit(
-                  num,
-                  new_product_num.clone(),
-                  new_destination_num.clone(),
-                ),
-                num: lend_num,
-              });
-              lend_data_lst_to_output(data_file_name, lend_data);
-              print_message::print_edit_success(
-                &num,
-                &new_product_num,
-                &new_destination_num,
-                &lend_num,
+              let data_str = data.to_string();
+              println!(
+                "{}\nという{}番の操作の品名を\"{}\"に、相手を\"{}\"に変更します\n本当に良いですか？[Y/n]\n    >",
+                data_str,
+                num,
+                new_product_num,
+                new_destination_num
               );
+              let mut s = String::new();
+              std::io::stdin().read_line(&mut s).ok();
+              let s: &str = &s.trim().to_owned().to_ascii_lowercase();
+              match s {
+                "n" => println!("操作を中止しました"),
+                _ => {
+                  lend_data.push(lib::LendData {
+                    time: time_fixed_offset,
+                    lend_type: lib::LendType::Edit(
+                      num,
+                      new_product_num.clone(),
+                      new_destination_num.clone(),
+                    ),
+                    num: lend_num,
+                  });
+                  lend_data_lst_to_output(data_file_name, lend_data);
+                  print_message::print_edit_success(
+                    &num,
+                    &new_product_num,
+                    &new_destination_num,
+                    &lend_num,
+                  );
+                }
+              }
             }
           }
         }
