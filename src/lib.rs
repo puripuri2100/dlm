@@ -306,11 +306,29 @@ pub fn get_lend_data(lend_data: &[LendData], n: isize) -> Option<LendData> {
   lend_data.iter().find(|data| data.num == n).cloned()
 }
 
+// ASCII文字なら1、それ以外なら2として長さを計算する
+fn get_char_len(s: &String) -> usize {
+  let char_vec = s.chars();
+  let mut len = 0;
+  for c in char_vec {
+    if c.is_ascii() {
+      len = len + 1
+    } else {
+      len = len + 2
+    }
+  }
+  len
+}
+
 // 'show'コマンドで表示する内容を作成する
 // 操作番号   時刻               貸出品                       貸出先（団体名）（場所）
 //    (1) :   2020/11/23 17:40   0001（内リール1）            0（電気係）（第二会議室）
 // という内容
-fn show_lend_data_to_string(show_lend_data: &ShowLendData, config_data: &ConfigData) -> String {
+// 貸出品と貸出先は長さの調節をしなければならないので、別個で文字を出すようにする
+fn show_lend_data_to_string(
+  show_lend_data: &ShowLendData,
+  config_data: &ConfigData,
+) -> (String, (String, usize), (String, usize)) {
   let time = show_lend_data.time;
   let time_str = time.format("%Y/%m/%d %H:%M").to_string();
   let product_num = &show_lend_data.product_num;
@@ -333,17 +351,20 @@ fn show_lend_data_to_string(show_lend_data: &ShowLendData, config_data: &ConfigD
   let num = show_lend_data.num;
   let num_str = format!("({}):", num);
   let product_str = format!("{}{}", product_num, product_name);
-  format!(
-    "{num:>8}   {time:<16}   {product:<030}   {destination_str:<030}\n",
-    num = num_str,
-    time = time_str,
-    product = product_str,
-    destination_str = destination_str
+  let product_str_len = get_char_len(&product_str);
+  let destination_str_len = get_char_len(&destination_str);
+  (
+    format!("{num:>8}   {time:<16}", num = num_str, time = time_str,),
+    (product_str, product_str_len),
+    (destination_str, destination_str_len),
   )
 }
 
 // 貸出中の品を表示するための文字列を作る
-pub fn make_lend_data_str(lend_data_lst: Vec<LendData>, config_data: ConfigData) -> String {
+pub fn make_lend_data_str(
+  lend_data_lst: Vec<LendData>,
+  config_data: ConfigData,
+) -> (String, usize) {
   let mut lend_data_lst = organize_lend_data(&lend_data_lst);
   // 操作番号が小さい方が最初になるように並び替える
   lend_data_lst.sort_by(|a, b| a.num.cmp(&b.num));
@@ -371,10 +392,32 @@ pub fn make_lend_data_str(lend_data_lst: Vec<LendData>, config_data: ConfigData)
       _ => (),
     }
   }
-  lend_vec
+  let lend_str_vec: Vec<(String, (String, usize), (String, usize))> = lend_vec
     .iter()
     .map(|show_lend_data| show_lend_data_to_string(show_lend_data, &config_data))
-    .collect()
+    .collect();
+  let (_, (_, product_str_len_max), _) = lend_str_vec
+    .iter()
+    .max_by_key(|(_, (_, product_str_len), _)| product_str_len)
+    .unwrap();
+  let (_, _, (_, destination_str_len_max)) = lend_str_vec
+    .iter()
+    .max_by_key(|(_, _, (_, destination_str_len))| destination_str_len)
+    .unwrap();
+  let mut s = String::new();
+  for (num_and_time_str, (product_str, product_str_len), (destination_str, destination_str_len)) in
+    lend_str_vec.iter()
+  {
+    s.push_str(&format!(
+      "{}   {}{}   {}{}\n",
+      num_and_time_str,
+      product_str,
+      " ".repeat(product_str_len_max - product_str_len),
+      destination_str,
+      " ".repeat(destination_str_len_max - destination_str_len)
+    ))
+  }
+  (s, *product_str_len_max)
 }
 
 // 引数をデータ構造に落とす

@@ -282,8 +282,12 @@ fn main() {
       // ヘッダーを出力した後に、データから作成した文字列を出力する
       lib::DlmArg::Show => {
         let lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
-        let lend_data_str = lib::make_lend_data_str(lend_data, config_data.clone());
-        println!("操作番号   時刻               貸出品                                 貸出先（団体名）（場所）");
+        let (lend_data_str, product_str_len_max) =
+          lib::make_lend_data_str(lend_data, config_data.clone());
+        println!(
+          "操作番号   時刻               貸出品{}   貸出先（団体名）（場所）",
+          " ".repeat(product_str_len_max - 6)
+        );
         println!("{}", lend_data_str)
       }
       // データを記録していたCSVファイルを読み込んでデータ群を抜き出し、
