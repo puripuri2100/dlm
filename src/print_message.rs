@@ -68,12 +68,14 @@ pub fn print_not_found_command_name(name: String) {
   )
 }
 
-pub fn print_missing_argument() {
+pub fn print_missing_argument(msg: String) {
   print!(
     "
   引数を間違えています。
+  {}
   helpを入力して使い方を確認してください
-"
+",
+    msg
   );
 }
 

@@ -448,7 +448,7 @@ pub enum DlmArg {
   Help,
   Exit,
   NotFoundCommandName(String),
-  MissingArgument,
+  MissingArgument(String),
   History(usize),
   Show(Option<(Regex, Regex)>),
   AllPrint,
@@ -466,29 +466,65 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
   } else {
     let arg_command_name: &str = &arg[0].to_owned().to_ascii_lowercase();
     match arg_command_name {
-      "exit" => DlmArg::Exit,
-      "help" => DlmArg::Help,
-      "history" => match arg.get(1) {
-        None => DlmArg::History(10),
-        Some(s) => match s.parse() {
-          Err(_) => DlmArg::MissingArgument,
-          Ok(i) => DlmArg::History(i),
-        },
-      },
-      "show" => match (arg.get(1), arg.get(2)) {
-        (None, None) => DlmArg::Show(None),
-        (Some(s1), Some(s2)) => match (Regex::new(s1), Regex::new(s2)) {
-          (Ok(re1), Ok(re2)) => DlmArg::Show(Some((re1, re2))),
-          _ => DlmArg::MissingArgument,
-        },
-        _ => DlmArg::MissingArgument,
-      },
-      "all" => DlmArg::AllPrint,
-      "check" => DlmArg::Check,
+      "exit" => {
+        if arg.len() >= 2 {
+          DlmArg::MissingArgument("引数は不要です".to_string())
+        } else {
+          DlmArg::Exit
+        }
+      }
+      "help" => {
+        if arg.len() >= 2 {
+          DlmArg::MissingArgument("引数は不要です".to_string())
+        } else {
+          DlmArg::Help
+        }
+      }
+      "history" => {
+        if arg.len() >= 3 {
+          DlmArg::MissingArgument("引数は1つまでです".to_string())
+        } else {
+          match arg.get(1) {
+            None => DlmArg::History(10),
+            Some(s) => match s.parse() {
+              Err(_) => DlmArg::MissingArgument("数字を入力してください".to_string()),
+              Ok(i) => DlmArg::History(i),
+            },
+          }
+        }
+      }
+      "show" => {
+        if arg.len() >= 4 {
+          DlmArg::MissingArgument("引数は2つまでです".to_string())
+        } else {
+          match (arg.get(1), arg.get(2)) {
+            (None, None) => DlmArg::Show(None),
+            (Some(s1), Some(s2)) => match (Regex::new(s1), Regex::new(s2)) {
+              (Ok(re1), Ok(re2)) => DlmArg::Show(Some((re1, re2))),
+              _ => DlmArg::MissingArgument("正規表現として不正な引数です".to_string()),
+            },
+            _ => DlmArg::MissingArgument("フィルターを書ける場合は引数は2つ必要です".to_string()),
+          }
+        }
+      }
+      "all" => {
+        if arg.len() >= 2 {
+          DlmArg::MissingArgument("引数は不要です".to_string())
+        } else {
+          DlmArg::AllPrint
+        }
+      }
+      "check" => {
+        if arg.len() >= 2 {
+          DlmArg::MissingArgument("引数は不要です".to_string())
+        } else {
+          DlmArg::Check
+        }
+      }
       "lend" | "l" => {
         // <貸出品の番号1> <貸出品の番号2> .. <貸出品の番号n> <貸出先の番号>
         match arg.get(1) {
-          None => DlmArg::MissingArgument,
+          None => DlmArg::MissingArgument("貸出品を与えてください".to_string()),
           Some(_) => {
             let mut v = Vec::new();
             let len = arg.len();
@@ -496,7 +532,7 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
               v.push(arg[i].to_string())
             }
             match arg.iter().last() {
-              None => DlmArg::MissingArgument,
+              None => DlmArg::MissingArgument("貸出先を与えてください".to_string()),
               Some(s) => DlmArg::Lend(v, s.to_string()),
             }
           }
@@ -513,27 +549,37 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
       }
       "edit" => {
         // <編集対象に付けられた通し番号> <編集後の品名の番号> <編集後の貸出先の番号>
-        match arg.get(1) {
-          None => DlmArg::MissingArgument,
-          Some(s1) => match s1.parse() {
-            Err(_) => DlmArg::MissingArgument,
-            Ok(i) => match arg.get(2) {
-              None => DlmArg::MissingArgument,
-              Some(s2) => match arg.get(3) {
-                None => DlmArg::MissingArgument,
-                Some(s3) => DlmArg::Edit(i, s2.to_string(), s3.to_string()),
+        if arg.len() >= 5 {
+          DlmArg::MissingArgument("引数は3までです".to_string())
+        } else {
+          match arg.get(1) {
+            None => DlmArg::MissingArgument("編集対象の通し番号を与えてください".to_string()),
+            Some(s1) => match s1.parse() {
+              Err(_) => DlmArg::MissingArgument("数字を与えてください".to_string()),
+              Ok(i) => match arg.get(2) {
+                None => DlmArg::MissingArgument("編集後の品名を与えてください".to_string()),
+                Some(s2) => match arg.get(3) {
+                  None => DlmArg::MissingArgument("編集後の貸出先を与えてください".to_string()),
+                  Some(s3) => DlmArg::Edit(i, s2.to_string(), s3.to_string()),
+                },
               },
             },
-          },
+          }
         }
       }
-      "remove" => match arg.get(1) {
-        None => DlmArg::MissingArgument,
-        Some(s) => match s.parse() {
-          Err(_) => DlmArg::MissingArgument,
-          Ok(i) => DlmArg::Remove(i),
-        },
-      },
+      "remove" => {
+        if arg.len() >= 3 {
+          DlmArg::MissingArgument("引数は1つまでです".to_string())
+        } else {
+          match arg.get(1) {
+            None => DlmArg::MissingArgument("削除対象の操作の番号を与えてください".to_string()),
+            Some(s) => match s.parse() {
+              Err(_) => DlmArg::MissingArgument("数字を与えてください".to_string()),
+              Ok(i) => DlmArg::Remove(i),
+            },
+          }
+        }
+      }
       // コメント扱い
       "#" => DlmArg::Null,
       name => DlmArg::NotFoundCommandName(name.to_owned()),

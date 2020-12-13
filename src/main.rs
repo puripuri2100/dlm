@@ -298,7 +298,7 @@ fn main() {
       // 使えるコマンドではないというメッセージを表示して再度の入力を促す
       lib::DlmArg::NotFoundCommandName(name) => print_message::print_not_found_command_name(name),
       // 「引数の数や型が間違っている」ということを伝えて再度の入力を促す
-      lib::DlmArg::MissingArgument => print_message::print_missing_argument(),
+      lib::DlmArg::MissingArgument(msg) => print_message::print_missing_argument(msg),
       // 記録していたコマンド文字列を表示する
       lib::DlmArg::History(n) => print_message::print_history(&arg_command_history_vec, n),
       // データを記録していたCSVファイルを読み込んでデータ群を抜き出し、
