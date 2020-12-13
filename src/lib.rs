@@ -324,12 +324,10 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
       "help" => DlmArg::Help,
       "history" => match arg.get(1) {
         None => DlmArg::History(10),
-        Some(s) => {
-          match s.parse() {
-            Err(_) => {DlmArg::MissingArgument}
-            Ok(i) => {DlmArg::History(i)}
-          }
-        }
+        Some(s) => match s.parse() {
+          Err(_) => DlmArg::MissingArgument,
+          Ok(i) => DlmArg::History(i),
+        },
       },
       "show" => DlmArg::Show,
       "all" => DlmArg::AllPrint,
