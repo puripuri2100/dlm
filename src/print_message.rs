@@ -59,7 +59,7 @@ pub fn print_help() {
 }
 
 pub fn print_not_found_command_name(name: String) {
-  println!(
+  eprintln!(
     "
   {}というコマンド名は見つかりませんでした。
   使うことのできるコマンド名は help を見てください。
