@@ -492,7 +492,7 @@ fn main() {
               println!("!  'remove'または'edit'で行った操作を編集することは出来ません");
             }
             _ => {
-              let data_str = data.to_string();
+              let data_str = lib::lend_data_to_message_with_config_data(&data, &config_data);
               println!(
                 "{}\nという{}番の操作の品名を\"{}\"に、相手を\"{}\"に変更します\n本当に良いですか？[Y/n]\n    >",
                 data_str,
@@ -542,7 +542,7 @@ fn main() {
         } else {
           let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
           let data = lib::get_lend_data(&lend_data, num).unwrap();
-          let data_str = data.to_string();
+          let data_str = lib::lend_data_to_message_with_config_data(&data, &config_data);
           println!(
             "{}\nという{}番の操作を無かったことにします\n本当に良いですか？[Y/n] >",
             data_str, num
@@ -565,85 +565,12 @@ fn main() {
         }
       }
       lib::DlmArg::AllPrint => {
-        use lib::LendType;
         // CSVファイルへのパスから生成したデータ群を文字列化してそのまま出力
         let lend_data_lst = csv_file_name_to_lend_data(data_file_name.to_owned());
         for lend_data in lend_data_lst {
-          let time = lend_data.time;
-          let time_str = time.format("%Y/%m/%d %H:%M").to_string();
-          let num = lend_data.num;
-          let lend_type = lend_data.clone().lend_type;
-          let lend_str = match lend_type {
-            LendType::Lend(product_num, destination_num) => {
-              let (sizai_str, sandan_str) = match (
-                config_data
-                  .sizai
-                  .get(&product_num)
-                  .map(|j| j.as_str().unwrap()),
-                config_data
-                  .sandan
-                  .get(&destination_num)
-                  .map(|j| j.as_str().unwrap()),
-              ) {
-                (None, None) => (String::new(), String::new()),
-                (Some(s1), None) => (format!("（{}）", s1), String::new()),
-                (None, Some(s2)) => (String::new(), format!("（{}）", s2)),
-                (Some(s1), Some(s2)) => (format!("（{}）", s1), format!("（{}）", s2)),
-              };
-              format!(
-                "\"{}{}\"を\"{}{}\"へ貸出",
-                product_num, sizai_str, destination_num, sandan_str
-              )
-            }
-            LendType::Return(product_num, destination_num) => {
-              let (sizai_str, sandan_str) = match (
-                config_data
-                  .sizai
-                  .get(&product_num)
-                  .map(|j| j.as_str().unwrap()),
-                config_data
-                  .sandan
-                  .get(&destination_num)
-                  .map(|j| j.as_str().unwrap()),
-              ) {
-                (None, None) => (String::new(), String::new()),
-                (Some(s1), None) => (format!("（{}）", s1), String::new()),
-                (None, Some(s2)) => (String::new(), format!("（{}）", s2)),
-                (Some(s1), Some(s2)) => (format!("（{}）", s1), format!("（{}）", s2)),
-              };
-              format!(
-                "\"{}{}\"を\"{}{}\"が返却",
-                product_num, sizai_str, destination_num, sandan_str
-              )
-            }
-            LendType::Edit(num, new_product_num, new_destination_num) => {
-              let (sizai_str, sandan_str) = match (
-                config_data
-                  .sizai
-                  .get(&new_product_num)
-                  .map(|j| j.as_str().unwrap()),
-                config_data
-                  .sandan
-                  .get(&new_destination_num)
-                  .map(|j| j.as_str().unwrap()),
-              ) {
-                (None, None) => (String::new(), String::new()),
-                (Some(s1), None) => (format!("（{}）", s1), String::new()),
-                (None, Some(s2)) => (String::new(), format!("（{}）", s2)),
-                (Some(s1), Some(s2)) => (format!("（{}）", s1), format!("（{}）", s2)),
-              };
-              format!(
-                "{}番目の操作の品名を\"{}{}\"に、相手を\"{}{}\"に修正する",
-                num, new_product_num, sizai_str, new_destination_num, sandan_str
-              )
-            }
-            LendType::Remove(num) => format!("{}番目の操作を無かったことにする", num),
-          };
           println!(
-            "{num:>3}: {time} 「{lend_str}」",
-            num = num,
-            time = time_str,
-            lend_str = lend_str
+            "{}",
+            lib::lend_data_to_message_with_config_data(&lend_data, &config_data)
           )
         }
       }

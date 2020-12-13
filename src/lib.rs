@@ -94,6 +94,88 @@ impl ToString for LendData {
   }
 }
 
+pub fn lend_data_to_message_with_config_data(
+  lend_data: &LendData,
+  config_data: &ConfigData,
+) -> String {
+  let time = lend_data.time;
+  let time_str = time.format("%Y/%m/%d %H:%M").to_string();
+  let num = lend_data.num;
+  let lend_type = lend_data.clone().lend_type;
+  let lend_str = match lend_type {
+    LendType::Lend(product_num, destination_num) => {
+      let (sizai_str, sandan_str) = match (
+        config_data
+          .sizai
+          .get(&product_num)
+          .map(|j| j.as_str().unwrap()),
+        config_data
+          .sandan
+          .get(&destination_num)
+          .map(|j| j.as_str().unwrap()),
+      ) {
+        (None, None) => (String::new(), String::new()),
+        (Some(s1), None) => (format!("（{}）", s1), String::new()),
+        (None, Some(s2)) => (String::new(), format!("（{}）", s2)),
+        (Some(s1), Some(s2)) => (format!("（{}）", s1), format!("（{}）", s2)),
+      };
+      format!(
+        "\"{}{}\"を\"{}{}\"へ貸出",
+        product_num, sizai_str, destination_num, sandan_str
+      )
+    }
+    LendType::Return(product_num, destination_num) => {
+      let (sizai_str, sandan_str) = match (
+        config_data
+          .sizai
+          .get(&product_num)
+          .map(|j| j.as_str().unwrap()),
+        config_data
+          .sandan
+          .get(&destination_num)
+          .map(|j| j.as_str().unwrap()),
+      ) {
+        (None, None) => (String::new(), String::new()),
+        (Some(s1), None) => (format!("（{}）", s1), String::new()),
+        (None, Some(s2)) => (String::new(), format!("（{}）", s2)),
+        (Some(s1), Some(s2)) => (format!("（{}）", s1), format!("（{}）", s2)),
+      };
+      format!(
+        "\"{}{}\"を\"{}{}\"が返却",
+        product_num, sizai_str, destination_num, sandan_str
+      )
+    }
+    LendType::Edit(num, new_product_num, new_destination_num) => {
+      let (sizai_str, sandan_str) = match (
+        config_data
+          .sizai
+          .get(&new_product_num)
+          .map(|j| j.as_str().unwrap()),
+        config_data
+          .sandan
+          .get(&new_destination_num)
+          .map(|j| j.as_str().unwrap()),
+      ) {
+        (None, None) => (String::new(), String::new()),
+        (Some(s1), None) => (format!("（{}）", s1), String::new()),
+        (None, Some(s2)) => (String::new(), format!("（{}）", s2)),
+        (Some(s1), Some(s2)) => (format!("（{}）", s1), format!("（{}）", s2)),
+      };
+      format!(
+        "{}番目の操作の品名を\"{}{}\"に、相手を\"{}{}\"に修正する",
+        num, new_product_num, sizai_str, new_destination_num, sandan_str
+      )
+    }
+    LendType::Remove(num) => format!("{}番目の操作を無かったことにする", num),
+  };
+  format!(
+    "{num:>5}: {time} 「{lend_str}」",
+    num = format!("({})", num),
+    time = time_str,
+    lend_str = lend_str
+  )
+}
+
 #[test]
 fn check_sort_lend_data() {
   use chrono::Utc;
