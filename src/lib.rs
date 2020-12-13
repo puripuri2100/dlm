@@ -1,4 +1,5 @@
 use chrono::FixedOffset;
+use regex::Regex;
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
@@ -364,6 +365,7 @@ fn show_lend_data_to_string(
 pub fn make_lend_data_str(
   lend_data_lst: Vec<LendData>,
   config_data: ConfigData,
+  re_opt: Option<(Regex, Regex)>,
 ) -> (String, usize) {
   let mut lend_data_lst = organize_lend_data(&lend_data_lst);
   // 操作番号が小さい方が最初になるように並び替える
@@ -394,30 +396,49 @@ pub fn make_lend_data_str(
   }
   let lend_str_vec: Vec<(String, (String, usize), (String, usize))> = lend_vec
     .iter()
+    .filter(|lend_data| match &re_opt {
+      None => true,
+      Some((product_re, destination_re)) => {
+        product_re.is_match(&lend_data.product_num)
+          && destination_re.is_match(&lend_data.destination_num)
+      }
+    })
     .map(|show_lend_data| show_lend_data_to_string(show_lend_data, &config_data))
     .collect();
-  let (_, (_, product_str_len_max), _) = lend_str_vec
+  let product_str_len_max = match lend_str_vec
     .iter()
     .max_by_key(|(_, (_, product_str_len), _)| product_str_len)
-    .unwrap();
-  let (_, _, (_, destination_str_len_max)) = lend_str_vec
+  {
+    None => 6,
+    Some((_, (_, product_str_len_max), _)) => *product_str_len_max,
+  };
+  let destination_str_len_max = match lend_str_vec
     .iter()
     .max_by_key(|(_, _, (_, destination_str_len))| destination_str_len)
-    .unwrap();
-  let mut s = String::new();
-  for (num_and_time_str, (product_str, product_str_len), (destination_str, destination_str_len)) in
-    lend_str_vec.iter()
   {
-    s.push_str(&format!(
-      "{}   {}{}   {}{}\n",
-      num_and_time_str,
-      product_str,
-      " ".repeat(product_str_len_max - product_str_len),
-      destination_str,
-      " ".repeat(destination_str_len_max - destination_str_len)
-    ))
-  }
-  (s, *product_str_len_max)
+    None => 6,
+    Some((_, _, (_, destination_str_len_max))) => *destination_str_len_max,
+  };
+  let s = lend_str_vec
+    .iter()
+    .map(
+      |(
+        num_and_time_str,
+        (product_str, product_str_len),
+        (destination_str, destination_str_len),
+      )| {
+        format!(
+          "{}   {}{}   {}{}\n",
+          num_and_time_str,
+          product_str,
+          " ".repeat(product_str_len_max - product_str_len),
+          destination_str,
+          " ".repeat(destination_str_len_max - destination_str_len)
+        )
+      },
+    )
+    .collect();
+  (s, product_str_len_max)
 }
 
 // 引数をデータ構造に落とす
@@ -429,7 +450,7 @@ pub enum DlmArg {
   NotFoundCommandName(String),
   MissingArgument,
   History(usize),
-  Show,
+  Show(Option<(Regex, Regex)>),
   AllPrint,
   Check,
   Lend(Vec<String>, String),
@@ -454,7 +475,14 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
           Ok(i) => DlmArg::History(i),
         },
       },
-      "show" => DlmArg::Show,
+      "show" => match (arg.get(1), arg.get(2)) {
+        (None, None) => DlmArg::Show(None),
+        (Some(s1), Some(s2)) => match (Regex::new(s1), Regex::new(s2)) {
+          (Ok(re1), Ok(re2)) => DlmArg::Show(Some((re1, re2))),
+          _ => DlmArg::MissingArgument,
+        },
+        _ => DlmArg::MissingArgument,
+      },
       "all" => DlmArg::AllPrint,
       "check" => DlmArg::Check,
       "lend" | "l" => {

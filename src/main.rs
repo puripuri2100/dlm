@@ -179,6 +179,29 @@ fn check_lend_product_num(data: &lib::LendData, product_num: &str) -> bool {
   }
 }
 
+#[test]
+fn check_regex() {
+  use regex::Regex;
+  let re1 = Regex::new("\\d{4}").unwrap();
+  assert_eq!(true, re1.is_match("0123"));
+  assert_eq!(false, re1.is_match("1"));
+  let re2 = Regex::new(".").unwrap();
+  assert_eq!(true, re2.is_match("0123"));
+  assert_eq!(true, re2.is_match("1"));
+  let re = Regex::new("0\\d{3}").unwrap();
+  assert_eq!(true, re.is_match("0123"));
+  assert_eq!(false, re.is_match("1123"));
+  assert_eq!(false, re.is_match("1"));
+  let re = Regex::new("\\d{2}").unwrap();
+  assert_eq!(true, re.is_match("0123"));
+  assert_eq!(true, re.is_match("1123"));
+  assert_eq!(false, re.is_match("1"));
+  let re = Regex::new("0").unwrap();
+  assert_eq!(true, re.is_match("0"));
+  assert_eq!(true, re.is_match("60"));
+  assert_eq!(false, re.is_match("1"));
+}
+
 // mainの関数
 // ソフトウェアが実行された場合、この関数が実行され、他の関数を次々に呼び出して処理を行っていく
 #[allow(unused_assignments)]
@@ -280,10 +303,10 @@ fn main() {
       lib::DlmArg::History(n) => print_message::print_history(&arg_command_history_vec, n),
       // データを記録していたCSVファイルを読み込んでデータ群を抜き出し、
       // ヘッダーを出力した後に、データから作成した文字列を出力する
-      lib::DlmArg::Show => {
+      lib::DlmArg::Show(re_opt) => {
         let lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         let (lend_data_str, product_str_len_max) =
-          lib::make_lend_data_str(lend_data, config_data.clone());
+          lib::make_lend_data_str(lend_data, config_data.clone(), re_opt);
         println!(
           "操作番号   時刻               貸出品{}   貸出先（団体名）（場所）",
           " ".repeat(product_str_len_max - 6)
