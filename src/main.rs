@@ -9,9 +9,9 @@ use std::fs;
 use std::process;
 
 // パスからファイルの中身を読み取ってserde_jsonで提供される関数でデータ化する
-fn path_to_json_data(path: &str) -> Value {
-  let data = fs::read_to_string(path).unwrap();
-  serde_json::from_str(&data).unwrap()
+fn path_to_json_data(path: &str) -> Option<Value> {
+  let data = fs::read_to_string(path).ok()?;
+  serde_json::from_str(&data).ok()?
 }
 
 // 一行のCSVデータから一つの貸出返却関係のデータを作る
@@ -224,7 +224,14 @@ fn main() {
   let config_data: lib::ConfigData = match config_file_name_opt {
     None => lib::make_config_data(json!(null), json!(null), json!(null)),
     Some(config_file_name) => {
-      let json_data = path_to_json_data(config_file_name);
+      let json_data =
+        match path_to_json_data(config_file_name) {
+          None => {
+            eprintln!("JSONファイルの読み込み・解析に失敗しました");
+            process::exit(1)
+          }
+          Some(v) => v,
+        };
       let sizai_json_data = &json_data["sizai"];
       let sandan_json_data = &json_data["sandan"];
       let room_json_data = &json_data["room"];
