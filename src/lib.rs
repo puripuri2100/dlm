@@ -395,9 +395,7 @@ fn show_lend_data_to_string(
   )
 }
 
-
 type LendDataStringWithSize = (String, (String, usize), (String, usize));
-
 
 // 貸出中の品を表示するための文字列を作る
 pub fn make_lend_data_str(

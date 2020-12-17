@@ -179,6 +179,26 @@ fn check_lend_product_num(data: &lib::LendData, product_num: &str) -> bool {
   }
 }
 
+// 貸出先と返却先が一致しているかチェックする
+// 一致していたらtrue
+// 一致していなかったり対象がなかったりしたらfalse
+fn check_return_destination_num(
+  data_lst: &[lib::LendData],
+  product_num: &str,
+  destination_num: &str,
+) -> bool {
+  match data_lst
+    .iter()
+    .find(|data| check_lend_product_num(data, &product_num))
+  {
+    Some(data) => match data.clone().lend_type {
+      lib::LendType::Lend(_, n) => n == destination_num,
+      _ => false,
+    },
+    None => false,
+  }
+}
+
 #[test]
 fn check_regex() {
   use regex::Regex;
@@ -446,11 +466,27 @@ fn main() {
             .iter()
             .any(|data| check_lend_product_num(data, &product_num))
           {
-            lend_data.push(lib::LendData {
-              time: time_fixed_offset,
-              lend_type: lib::LendType::Return(product_num.clone(), destination_num.clone()),
-              num: lend_num,
-            });
+            // 貸出先と返却先が一致していなかったら警告を出して終了
+            if !check_return_destination_num(
+              &lib::make_now_lend_data_lst(&lend_data),
+              &product_num,
+              &destination_num,
+            ) {
+              // 貸出先と返却先が一致していない
+              check_is_ok = false;
+              eprintln!(
+                "!  {}の貸出先と返却先が一致していないため、この操作を行うことは出来ません",
+                product_num
+              );
+              break;
+            } else {
+              // 一致していたので返却操作を登録
+              lend_data.push(lib::LendData {
+                time: time_fixed_offset,
+                lend_type: lib::LendType::Return(product_num.clone(), destination_num.clone()),
+                num: lend_num,
+              });
+            }
           } else {
             check_is_ok = false;
             eprintln!(
