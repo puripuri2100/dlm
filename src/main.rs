@@ -383,7 +383,7 @@ fn main() {
         // 一つでも検査を通らなかったらエラーとして処理し、なにも書き込まない
         let mut check_is_ok = true;
         for product_num in product_num_lst.iter() {
-          lend_num = lend_num + 1;
+          lend_num += 1;
           // 現在時刻をタイムゾーン分の9時間分ずらした上で取得
           let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
           // 'check'コマンドへの処理でやったことと同じ検査を行う
@@ -436,7 +436,7 @@ fn main() {
         // 一つでも検査を通らなかったらエラーとして処理し、なにも書き込まない
         let mut check_is_ok = true;
         for product_num in product_num_lst.iter() {
-          lend_num = lend_num + 1;
+          lend_num += 1;
           // 現在時刻をタイムゾーン分の9時間分ずらした上で取得
           let time_fixed_offset = Utc::now().with_timezone(&FixedOffset::east(9 * 3600));
           // 'check'コマンドへの処理でやったことと同じ検査を行う

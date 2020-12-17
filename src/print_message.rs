@@ -97,14 +97,14 @@ pub fn print_history(command_history: &[String], range: usize) {
   }
 }
 
-pub fn print_lend_success(product_num: &str, destination_num: &String, lend_num: &isize) {
+pub fn print_lend_success(product_num: &str, destination_num: &str, lend_num: &isize) {
   println!(
     "({}): {}を{}に貸し出しました",
     lend_num, product_num, destination_num
   );
 }
 
-pub fn print_return_success(product_num: &str, destination_num: &String, lend_num: &isize) {
+pub fn print_return_success(product_num: &str, destination_num: &str, lend_num: &isize) {
   println!(
     "({}): {}が{}から返却されました",
     lend_num, product_num, destination_num
@@ -114,7 +114,7 @@ pub fn print_return_success(product_num: &str, destination_num: &String, lend_nu
 pub fn print_edit_success(
   num: &isize,
   new_product_num: &str,
-  new_destination_num: &String,
+  new_destination_num: &str,
   lend_num: &isize,
 ) {
   println!(

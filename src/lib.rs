@@ -232,7 +232,7 @@ fn check_sort_lend_data() {
 }
 
 // データからremoveやeditを反映させ、綺麗なデータを作る
-pub fn organize_lend_data(lend_data_lst: &Vec<LendData>) -> Vec<LendData> {
+pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
   let mut sort_lend_data_lst = lend_data_lst.to_owned();
   // 大きい順に並び変えることで、removeとeditを先にし、最初に処理を行う
   sort_lend_data_lst.sort_by(|a, b| b.partial_cmp(a).unwrap());
@@ -306,7 +306,7 @@ pub fn organize_lend_data(lend_data_lst: &Vec<LendData>) -> Vec<LendData> {
 // 貸出と返却を実行することで
 // 「現在貸し出されている貸出品」のリストを作り出す
 // もし、重複貸し出しや重複返却があったらNoneを返す
-pub fn make_now_lend_data_lst(lend_data_lst: &Vec<LendData>) -> Vec<LendData> {
+pub fn make_now_lend_data_lst(lend_data_lst: &[LendData]) -> Vec<LendData> {
   let mut lend_data_lst = organize_lend_data(lend_data_lst);
   // 操作番号が小さい方が最初になるように並び替える
   lend_data_lst.sort_by(|a, b| a.num.cmp(&b.num));
@@ -342,14 +342,14 @@ pub fn get_lend_data(lend_data: &[LendData], n: isize) -> Option<LendData> {
 }
 
 // ASCII文字なら1、それ以外なら2として長さを計算する
-fn get_char_len(s: &String) -> usize {
+fn get_char_len(s: &str) -> usize {
   let char_vec = s.chars();
   let mut len = 0;
   for c in char_vec {
     if c.is_ascii() {
-      len = len + 1
+      len += 1
     } else {
-      len = len + 2
+      len += 2
     }
   }
   len
@@ -395,6 +395,10 @@ fn show_lend_data_to_string(
   )
 }
 
+
+type LendDataStringWithSize = (String, (String, usize), (String, usize));
+
+
 // 貸出中の品を表示するための文字列を作る
 pub fn make_lend_data_str(
   lend_data_lst: Vec<LendData>,
@@ -428,7 +432,7 @@ pub fn make_lend_data_str(
       _ => (),
     }
   }
-  let lend_str_vec: Vec<(String, (String, usize), (String, usize))> = lend_vec
+  let lend_str_vec: Vec<LendDataStringWithSize> = lend_vec
     .iter()
     .filter(|lend_data| match &re_opt {
       None => true,
@@ -565,8 +569,8 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
             } else {
               let mut v = Vec::new();
               let len = arg.len();
-              for i in 1..(len - 1) {
-                v.push(arg[i].to_string())
+              for item in arg.iter().take(len - 1).skip(1) {
+                v.push(item.to_string())
               }
               DlmArg::Lend(v, arg[len - 1].to_string())
             }
@@ -583,8 +587,8 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
             } else {
               let mut v = Vec::new();
               let len = arg.len();
-              for i in 1..(len - 1) {
-                v.push(arg[i].to_string())
+              for item in arg.iter().take(len - 1).skip(1) {
+                v.push(item.to_string())
               }
               DlmArg::Return(v, arg[len - 1].to_string())
             }
