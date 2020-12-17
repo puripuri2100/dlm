@@ -10,15 +10,15 @@ Rustによって実装されています。
 
 ## リリースから実行ファイルを手に入れ、パスの通っている場所に配置する場合
 
-現時点での最新番は0.1.1です。
-[GitHub上でリリースされている](https://github.com/puripuri2100/dlm/releases/tag/0.1.1)ので、ここからzipファイルをダウンロードして展開し、中にある実行ファイルを適切な場所に配置してください。
+現時点での最新番は0.2.0です。
+[GitHub上でリリースされている](https://github.com/puripuri2100/dlm/releases/tag/0.2.0)ので、ここからzipファイルをダウンロードして展開し、中にある実行ファイルを適切な場所に配置してください。
 
 作成した実行ファイルは「64bit版Windows10用」と「Ubuntu20.04LTS用」です。「Ubuntu20.04LTS用」はWSL2上にインストールしたUbuntu20.04LTSで作成しました。
 
 zipファイルへのリンクは以下の通りです。クリックすると自動的にダウンロードが始まります。
 
-- [64bit版Windows10用](https://github.com/puripuri2100/dlm/releases/download/0.1.1/windows10-64bit-2020-12-03.zip)
-- [Ubuntu20.04LTS用](https://github.com/puripuri2100/dlm/releases/download/0.1.1/wsl2+ubuntu20.04LTS-2020-12-03.zip)
+- [64bit版Windows10用](https://github.com/puripuri2100/dlm/releases/download/0.2.0/windows10-64bit-2020-12-17.zip)
+- [Ubuntu20.04LTS用](https://github.com/puripuri2100/dlm/releases/download/0.2.0/wsl2+ubuntu20.04LTS-2020-12-17.zip)
 
 
 ## Rust, Cargoの環境構築が済んでいる場合
@@ -63,6 +63,8 @@ cargo install --git "https://github.com/puripuri2100/dlm.git"
 
 団体名の方は`"sandan"`タグに対して同じようにデータを与えます。
 
+参団の部屋は`"room"`タグに同じようにしてデータを与えます。
+
 
 # 使いかた
 
@@ -79,21 +81,18 @@ cargo install --git "https://github.com/puripuri2100/dlm.git"
 
   exit      : 終了します
 
-  lend      : 'lend <貸出品の番号> <貸出先の番号>' で貸出を登録します
-              <貸出先の番号>は省略可能です
+  lend      : 'lend <貸出品の番号1> <貸出品の番号2> .. <貸出品の番号n> <貸出先の番号>' で貸出を登録します
 
   l         : 'lend' の省略形です
               使い方は'lend'と変わりません
 
-  return    : 'return <返却品の番号> <返却元の番号>' で返却を登録します
-              <返却元の番号>は省略可能です
+  return    : 'return <返却品の番号1> <返却品の番号2> .. <返却品の番号n> <返却元の番号>' で返却を登録します
 
   r         : 'return' の省略形です
               使い方は'return'と変わりません
 
   edit      : 'edit <編集対象に付けられた通し番号> <編集後の品名の番号> <編集後の貸出先の番号>'
               で以前に行った操作を改変できます
-              <編集後の貸出先の番号>は省略可能です
               'remove'と'edit'で行った操作を編集することは出来ません
 
   remove    : 'remove <編集対象に付けられた通し番号>'
@@ -101,6 +100,12 @@ cargo install --git "https://github.com/puripuri2100/dlm.git"
 
   show      : 現在貸し出されているものと貸出先を表示します
               品名と貸出先の番号は実行時に与えたJSONファイルに基づいて変換されます
+              'show <品名の検索> <貸出先の検索>'で条件にあうもののみ表示することができます
+              検索の条件指定は正規表現で行います
+              例えば、'show 0\d{3} \d' で貸し出しているリールが分かります
+              '\d'で「任意の数字列」、'\d{<数字>}'で「指定した桁数の数字列」です
+              '^0'で「0から始まる文字列」、'0$'で「0で終わる文字列」です
+              組み合わせて'^0$'のようにすると、「0」を表すことができます
 
   all       : 全ての操作を表示します
 
@@ -124,6 +129,18 @@ cargo install --git "https://github.com/puripuri2100/dlm.git"
     - `show`コマンドの実行の際に、部屋番号も出力するようにした
   - 設定データをVecに直さずに、そのまま`serde_json::Value`のまま扱うようにした
   - `Arg`というenumが名前衝突していたので、`DlmArg`に変更した
+- v0.2.0
+  - 2020/12/17
+  - `lend`と`return`の引数を変更し、「一つの貸出先に複数の品名を同時に貸し出す」操作を行えるようにした（返却も同様）
+  - `edit`の引数で「編集後の貸出先の番号」を省略できないようにした
+  - 全てのコマンドの引数を厳格にし、多すぎる・少なすぎる・値が間違っているときにエラーを出すようにした
+  - JSONファイルの読み込みに失敗したら実行終了するようにした
+  - CSVファイルの読み込みに失敗したら異常終了するように修正した
+  - エラーの出力に`eprintln!`を使うように修正した
+  - `all`で表示するときや、`remove`と`edit`での確認表示に参団名などを表示するようにした
+  - `show`コマンドの出力が整うようにした
+  - `show`コマンドに正規表現を用いたフィルター機能を実装した
+  - 貸出・返却操作のチェックを強化した
 
 
 ---
