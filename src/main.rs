@@ -381,7 +381,7 @@ fn main() {
         //  - 検査
         // を行い、全部が検査を通った時に書き込む
         // 一つでも検査を通らなかったらエラーとして処理し、なにも書き込まない
-        let mut lend_tmp_vec = Vec::new();
+        let mut check_is_ok = true;
         for product_num in product_num_lst.iter() {
           lend_num = lend_num + 1;
           // 現在時刻をタイムゾーン分の9時間分ずらした上で取得
@@ -389,13 +389,11 @@ fn main() {
           // 'check'コマンドへの処理でやったことと同じ検査を行う
           // 検査を通過したらリストに登録してファイル更新
           // 検査を通らなかったらメッセージを表示して終了
-          if lend_data
+          if lib::make_now_lend_data_lst(&lend_data)
             .iter()
             .any(|data| check_lend_product_num(data, &product_num))
-            || lend_tmp_vec
-              .iter()
-              .any(|data| check_lend_product_num(data, &product_num))
           {
+            check_is_ok = false;
             eprintln!(
               "!  {}が既に貸し出されているのでこの操作を行うことはできません",
               product_num
@@ -403,37 +401,26 @@ fn main() {
             break;
           } else {
             // 成功したものを一時リストに登録していく
-            lend_tmp_vec.push(lib::LendData {
+            lend_data.push(lib::LendData {
               time: time_fixed_offset,
               lend_type: lib::LendType::Lend(product_num.clone(), destination_num.clone()),
               num: lend_num,
             });
           }
         }
-        // 最初のproduct_num_lstの長さとtmp_vecの長さを比較し、一緒なら全部OKだったということ
-        // 短かったらどこかで失敗しているので、そのまま中止
-        if product_num_lst.len() == lend_tmp_vec.len() {
-          let tmp_vec = lend_tmp_vec.clone();
-          // 一時リストを結合させる
-          lend_data.append(&mut lend_tmp_vec);
+        if check_is_ok {
           // 書き出し
           lend_data_lst_to_output(data_file_name, lend_data);
           // 成功メッセージの出力
-          for lend_tmp in tmp_vec {
-            let lend_num = lend_tmp.num;
-            match lend_tmp.lend_type {
-              lib::LendType::Lend(product_num, destination_num) => {
-                print_message::print_lend_success(&product_num, &destination_num, &lend_num);
-              }
-              _ => {}
-            }
+          for product_num in product_num_lst.iter() {
+            print_message::print_lend_success(&product_num, &destination_num, &lend_num);
           }
         } else {
           // 検査不合格が発声していた場合
           eprintln!("今回行われた操作は全て中止されました。再度正しい貸出を実行してください。\n")
         }
       }
-      lib::DlmArg::Return(product_num_lst, destination_num_opt) => {
+      lib::DlmArg::Return(product_num_lst, destination_num) => {
         // Lendのときとほとんど同じ
         let mut lend_data = csv_file_name_to_lend_data(data_file_name.to_owned());
         let lend_data_num_max = lend_data
@@ -447,7 +434,7 @@ fn main() {
         //  - 検査
         // を行い、全部が検査を通った時に書き込む
         // 一つでも検査を通らなかったらエラーとして処理し、なにも書き込まない
-        let mut return_tmp_vec = Vec::new();
+        let mut check_is_ok = true;
         for product_num in product_num_lst.iter() {
           lend_num = lend_num + 1;
           // 現在時刻をタイムゾーン分の9時間分ずらした上で取得
@@ -455,19 +442,17 @@ fn main() {
           // 'check'コマンドへの処理でやったことと同じ検査を行う
           // 検査を通過したらリストに登録してファイル更新
           // 検査を通らなかったらメッセージを表示して終了
-          if lend_data
+          if lib::make_now_lend_data_lst(&lend_data)
             .iter()
             .any(|data| check_lend_product_num(data, &product_num))
-            || return_tmp_vec
-              .iter()
-              .any(|data| check_lend_product_num(data, &product_num))
           {
-            return_tmp_vec.push(lib::LendData {
+            lend_data.push(lib::LendData {
               time: time_fixed_offset,
-              lend_type: lib::LendType::Return(product_num.clone(), destination_num_opt.clone()),
+              lend_type: lib::LendType::Return(product_num.clone(), destination_num.clone()),
               num: lend_num,
             });
           } else {
+            check_is_ok = false;
             eprintln!(
               "!  {}がまだ貸し出されてないのでこの操作を行うことは出来ません",
               product_num
@@ -475,22 +460,13 @@ fn main() {
             break;
           }
         }
-        // 最初のproduct_num_lstの長さとtmp_vecの長さを比較し、一緒なら全部OKだったということ
-        // 短かったらどこかで失敗しているので、そのまま中止
-        if product_num_lst.len() == return_tmp_vec.len() {
-          // 一時リストを結合させる
-          lend_data.append(&mut return_tmp_vec);
+        if check_is_ok {
           // 書き出し
           lend_data_lst_to_output(data_file_name, lend_data);
           // 成功メッセージの出力
-          for lend_tmp in return_tmp_vec {
-            let lend_num = lend_tmp.num;
-            match lend_tmp.lend_type {
-              lib::LendType::Return(product_num, destination_num) => {
-                print_message::print_return_success(&product_num, &destination_num, &lend_num);
-              }
-              _ => {}
-            }
+
+          for product_num in product_num_lst.iter() {
+            print_message::print_return_success(&product_num, &destination_num, &lend_num);
           }
         } else {
           // 検査不合格が発声していた場合

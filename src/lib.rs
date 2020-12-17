@@ -232,7 +232,7 @@ fn check_sort_lend_data() {
 }
 
 // データからremoveやeditを反映させ、綺麗なデータを作る
-pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
+pub fn organize_lend_data(lend_data_lst: &Vec<LendData>) -> Vec<LendData> {
   let mut sort_lend_data_lst = lend_data_lst.to_owned();
   // 大きい順に並び変えることで、removeとeditを先にし、最初に処理を行う
   sort_lend_data_lst.sort_by(|a, b| b.partial_cmp(a).unwrap());
@@ -300,6 +300,40 @@ pub fn organize_lend_data(lend_data_lst: &[LendData]) -> Vec<LendData> {
   // 操作番号が大きい（後に行った）ものが前になるように並べていたので、反転して通常に戻す
   sort_lend_data_lst.reverse();
   sort_lend_data_lst
+}
+
+// データにeditやremoveを適用し、
+// 貸出と返却を実行することで
+// 「現在貸し出されている貸出品」のリストを作り出す
+// もし、重複貸し出しや重複返却があったらNoneを返す
+pub fn make_now_lend_data_lst(lend_data_lst: &Vec<LendData>) -> Vec<LendData> {
+  let mut lend_data_lst = organize_lend_data(lend_data_lst);
+  // 操作番号が小さい方が最初になるように並び替える
+  lend_data_lst.sort_by(|a, b| a.num.cmp(&b.num));
+  // 貸したものを登録し、返却があったら削除する
+  // (時間, 品名番号, Option<貸出先番号>, 操作番号)
+  let mut lend_vec: Vec<LendData> = Vec::new();
+  for lend_data in lend_data_lst.iter() {
+    let lend_type = &lend_data.lend_type;
+    match lend_type {
+      LendType::Lend(_, _) => lend_vec.push(lend_data.clone()),
+      // 貸出品の番号が一致していたら削除
+      // filterを使うので、「一致していたらfalseを返す」ようにしないといけない
+      LendType::Return(product_num, _) => {
+        lend_vec = lend_vec
+          .iter()
+          .filter(|data| match &data.lend_type {
+            LendType::Lend(lend_product_num, _) => lend_product_num != product_num,
+            _ => true,
+          })
+          .cloned()
+          .collect();
+      }
+      // editとremoveは反映し終わっているはずなので考慮しない
+      _ => (),
+    }
+  }
+  lend_vec
 }
 
 // 操作番号から操作番号の種類を取り出す
@@ -526,26 +560,36 @@ pub fn parse_arg(arg: Vec<&str>) -> DlmArg {
         match arg.get(1) {
           None => DlmArg::MissingArgument("貸出品を与えてください".to_string()),
           Some(_) => {
-            let mut v = Vec::new();
-            let len = arg.len();
-            for i in 1..(len - 1) {
-              v.push(arg[i].to_string())
-            }
-            match arg.iter().last() {
-              None => DlmArg::MissingArgument("貸出先を与えてください".to_string()),
-              Some(s) => DlmArg::Lend(v, s.to_string()),
+            if arg.len() < 3 {
+              DlmArg::MissingArgument("貸出先を与えてください".to_string())
+            } else {
+              let mut v = Vec::new();
+              let len = arg.len();
+              for i in 1..(len - 1) {
+                v.push(arg[i].to_string())
+              }
+              DlmArg::Lend(v, arg[len - 1].to_string())
             }
           }
         }
       }
       "return" | "r" => {
         // <返却品の番号1> <返却品の番号2> .. <返却品の番号n> <返却元の番号>
-        let mut v = Vec::new();
-        let len = arg.len();
-        for i in 1..(len - 1) {
-          v.push(arg[i].to_string())
+        match arg.get(1) {
+          None => DlmArg::MissingArgument("返却品を与えてください".to_string()),
+          Some(_) => {
+            if arg.len() < 3 {
+              DlmArg::MissingArgument("返却先を与えてください".to_string())
+            } else {
+              let mut v = Vec::new();
+              let len = arg.len();
+              for i in 1..(len - 1) {
+                v.push(arg[i].to_string())
+              }
+              DlmArg::Return(v, arg[len - 1].to_string())
+            }
+          }
         }
-        DlmArg::Return(v, arg[len].to_string())
       }
       "edit" => {
         // <編集対象に付けられた通し番号> <編集後の品名の番号> <編集後の貸出先の番号>
